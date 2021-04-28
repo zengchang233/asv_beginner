@@ -9,7 +9,6 @@ import torchaudio as ta
 from torchaudio.transforms import *
 from torchaudio.compliance.kaldi import *
 
-from asv_beginner.libs.dataio.feature import FeatureExtractor
 
 class SpeechTrainDataset(Dataset):
     def __init__(self, opts):
@@ -35,6 +34,10 @@ class SpeechTrainDataset(Dataset):
         total_duration -= self.dev_total_duration
         mean_duration_per_utt = (np.mean(frame_range) - 1) * self.opts['win_shift'] + self.opts['win_len']
         self.count = math.floor(total_duration / mean_duration_per_utt) # make sure each sampling point in data will be used
+        if opts['data_format'] == 'python':
+            from asv_beginner.libs.dataio.python_feature import FeatureExtractor
+        elif opts['data_format'] == 'kaldi':
+            from asv_beginner.libs.dataio.kaldi_feature import FeatureExtractor
         self.feature_extractor = feature.FeatureExtractor(opts[opts['data_format']])
 
     def split_train_dev(self, dev_number = 1000):
