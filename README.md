@@ -30,37 +30,42 @@ scikit-learn
 
 ### dataio
 
-- [ x ] customized dataset implementation
+- [x] customized dataset implementation
 
-- [ x ] librosa style feature and kaldi style feature (implemented by the api of torchaudio)
+- [x] librosa style feature and kaldi style feature (implemented by the api of torchaudio)
 
 ### components
 
-- [  ] linear transformation components (TDNN layer, FTDNN layer, conv layer ...)
+- [ ] linear transformation components (TDNN layer, FTDNN layer, conv layer ...)
 
-- [  ] pooling components
+- [ ] pooling components
 
-- [  ] loss components
+- [ ] loss components
 
 ### models
 
-- [  ] TDNN
+- [ ] TDNN
 
-- [  ] E-TDNN
+- [ ] E-TDNN
 
-- [  ] F-TDNN
+- [ ] F-TDNN
 
-- [  ] ECAPA-TDNN
+- [ ] ECAPA-TDNN
 
-- [  ] ResNet (18, 34)
+- [ ] ResNet (18, 34)
 
-- [  ] RawNet
+- [ ] RawNet
 
-- [  ] Wav2Spk
+- [ ] Wav2Spk
+
+### trainer
+
+- [ ] trainer basic class
 
 ## Contributors
 
 [Chang ZENG](https://nii-yamagishilab.github.io/)
+
 Meng LIU
 
 ## Citation
