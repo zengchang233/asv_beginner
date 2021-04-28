@@ -15,7 +15,8 @@ class TAP(nn.Module):
         returns:
             embedding: (B x C)
         '''
-        pass
+        mean = torch.mean(feature_map, dim = 2)
+        return mean
 
 class GAP(nn.Module):
     def __init__(self):
@@ -31,17 +32,23 @@ class GAP(nn.Module):
         pass
 
 class STAT(nn.Module):
+    """
+    Mean and Standard deviation pooling
+    """
     def __init__(self):
         super(STAT, self).__init__()
+        pass
 
     def forward(self, feature_map):
         '''
         params:
             feature_map: (B x C x T)
         returns:
-            embeddings: (B x 2C)
+            embedding: (B x C)
         '''
-        pass
+        mean = torch.mean(feature_map, dim=2)
+        std = torch.std(feature_map, dim=2)
+        return torch.cat([mean, std], dim=1)
 
 class MultiHeadSAP(nn.Module):
     def __init__(self):

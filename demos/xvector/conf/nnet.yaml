@@ -13,9 +13,8 @@ data:
 
 
   python:
-    dev_number: 1000
     rate: 16000
-    feat_type: mel_spectrogram 
+    feat_type: mfcc 
     mel_spectrogram: # fbank config
       n_fft: 400 
       num_bin: 80
@@ -35,10 +34,10 @@ data:
       norm_vars: false
     mfcc: # mfcc config
       n_fft: 400
-      num_bin: 80
+      num_bin: 30
       normalize: true
       delta: false
-      num_cep: 40
+      num_cep: 30
       win_len: 0.025
       win_shift: 0.01
       cmvn_window: 400
@@ -48,14 +47,14 @@ data:
 model:
   arch: tdnn
   tdnn:
-    input_dim: 40
+    input_dim: 30
     hidden_dim: [512,512,512,512,1500]
     context: [[-2,-1,0,1,2],[-2,0,2],[-3,0,3],[0],[0]]
     tdnn_layers: 5
     fc_layers: 3
     embedding_dim: 512
-    pooling: STAT # (GAP, STAT, mono_head_attention, multi_head_attention, SAP, TAP)
-    attention_hidden_size: 64
+    pooling: STAT # (GAP, STAT, TAP, MultiHeadFFA, MultiHeadSAP)
+    # attention_hidden_size: 64
     bn_first: true
   etdnn:
     input_dim: 24
