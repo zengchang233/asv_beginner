@@ -1,0 +1,16 @@
+dataset:
+  path: ../data/train
+n_spks: 1024 
+n_utts: 5
+
+model:
+  d_model: 512
+  dropout: 0.1
+  head: 2
+  pooling: mha 
+  score: plda
+
+lr: 0.01
+resume: None
+epochs: 40
+milestones: [20, 32]
