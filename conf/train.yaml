@@ -1,0 +1,25 @@
+device: gpu # gpu, cpu
+gpus_id: [0,1,2,3]
+type: sgd
+bs: 32
+lr_decay: 0.1
+lr_scheduler: reducep
+check_interval: 100
+lr_scheduler_mode: min
+min_lr: 0.000001 
+patience: 5
+epoch: 50
+resume: none
+collate: length_varied
+loss: AMSoftmax # CrossEntropy, A-Softmax, LMCL(AM-Softmax), AAM-Softmax, Contrastive, Triplet
+scale: 20
+margin: [0.0,0.3]
+lambda: 1
+sgd:
+  init_lr: 0.1
+  weight_decay: 0.00001
+  momentum: 0.9
+adam:
+  init_lr: 0.01
+  weight_decay: 0.00001
+grad_clip_threshold: 20

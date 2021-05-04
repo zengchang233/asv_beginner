@@ -14,20 +14,20 @@ class TDNNLayer(nn.Module):
         else:
             dilation = 1
         self.context_layer = nn.Conv1d(
-                input_dim,
-                output_dim,
+                input_channel,
+                output_channel,
                 kernel_size = kernel_size,
                 stride = stride,
                 padding = padding,
                 dilation = dilation
                 )
-        self.bn = nn.BatchNorm1d(output_dim)
+        self.bn = nn.BatchNorm1d(output_channel)
         #  self.activation = nn.LeakyReLU(negative_slope = 0.2)
         self.activation = nn.ReLU()
         self.bn_first = bn_first
 
     def forward(self, x):
-        x = self.context_layer
+        x = self.context_layer(x)
         if self.bn_first:
             x = self.bn(x)
             x = self.activation(x)

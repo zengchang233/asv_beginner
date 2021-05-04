@@ -1,19 +1,25 @@
 import sys
-sys.path.insert(0,"/groups1/gcc50479/spk/code/asv_beginner")
+import time
+import logging
+import argparse
+import yaml
+import os
+sys.path.insert(0, "../../")
 
 import torch
 import libs.dataio.dataset as dataset
 
 class NNetTrainer(object):
-    def __init__(self, opts):
+    def __init__(self, data_opts, model_opts, train_opts):
         self.train_opts = opts['train']
         self.model_opts = opts['model']
         self.data_opts = opts['data']
 
         args = vars(self.parse_args())
         self.data_opts[self.data_opts['data_format']]['feat_type'] = args['feat_type']
-        self.model_opts['arch'] = args["arch"]
-        self.model_opts[args['arch']]['input_dim'] = args['input_dim']
+        # self.model_opts['arch'] = args["arch"]
+        # self.model_opts[args['arch']]['input_dim'] = args['input_dim']
+        self.model_opts['input_dim'] = args['input_dim']
         self.train_opts['loss'] = args["loss"]
         self.train_opts['bs'] = args['bs']
         self.train_opts['collate'] = args['collate']
@@ -27,92 +33,91 @@ class NNetTrainer(object):
             self.log_time = time.asctime(time.localtime(time.time())).replace(' ', '_').replace(':', '_')
         logging.info(self.log_time)
 
-        if self.data_opts['data_format'] == 'kaldi': 
-            self.trainset = dataset.SpeechTrainDataset(self.data_opts)
-        logging.info("Using {} to extract features".format(self.data_opts['data_format']))
-        logging.info("Using {} feature".format(args['feat_type']))
+        # if self.data_opts['data_format'] == 'kaldi': 
+        #     self.trainset = dataset.SpeechTrainDataset(self.data_opts)
+        # logging.info("Using {} to extract features".format(self.data_opts['data_format']))
+        # logging.info("Using {} feature".format(args['feat_type']))
 
-        n_spk = self.trainset.n_spk
+        # n_spk = self.trainset.n_spk
 
-        if self.model_opts['arch'] == 'tdnn' or self.model_opts['arch'] == 'etdnn':
-            import components.models.tdnn as tdnn
-            model = tdnn.SpeakerEmbNet(self.model_opts)
-        elif self.model_opts['arch'] == 'resnet':
-            import components.models.resnet as resnet
-            model = resnet.SpeakerEmbNet(self.model_opts)
-        else:
-            raise NotImplementedError("Other models are not implemented!")
-        logging.info("Using {} neural network".format(self.model_opts['arch']))
+        # if self.model_opts['arch'] == 'tdnn' or self.model_opts['arch'] == 'etdnn':
+        #     import components.models.tdnn as tdnn
+        #     model = tdnn.SpeakerEmbNet(self.model_opts)
+        # elif self.model_opts['arch'] == 'resnet':
+        #     import components.models.resnet as resnet
+        #     model = resnet.SpeakerEmbNet(self.model_opts)
+        # else:
+        #     raise NotImplementedError("Other models are not implemented!")
+        # logging.info("Using {} neural network".format(self.model_opts['arch']))
 
+
+        # train_collate_fn = self.trainset.collate_fn
+
+        # self.embedding_dim = self.model_opts[self.model_opts['arch']]['embedding_dim']
+        # logging.info("Dimension of speaker embedding is {}".format(self.embedding_dim))
+
+        # if self.train_opts['loss'] == 'CrossEntropy':
+        #     self.criterion = CrossEntropy(self.embedding_dim, n_spk).to(self.device)
+        # elif self.train_opts['loss'] == 'LMCL':
+        #     margin_range = self.train_opts['margin']
+        #     self.init_margin = margin_range[0]
+        #     self.end_margin = margin_range[1]
+        #     if self.model_opts['arch'] in ['tdnn', 'etdnn']:
+        #         self.criterion = LMCL(self.embedding_dim, n_spk, self.train_opts['scale'], self.init_margin).to(self.device)
+        #     elif self.model_opts['arch'] == 'resnet':
+        #         self.criterion = LMCL(self.embedding_dim, n_spk, self.train_opts['scale'], self.end_margin).to(self.device)
+        # elif self.train_opts['loss'] == 'LMCL_Uniform':
+        #     margin_range = self.train_opts['margin']
+        #     self.init_margin = margin_range[0]
+        #     self.end_margin = margin_range[1]
+        #     self.criterion = LMCLUniformLoss(self.embedding_dim, n_spk, self.train_opts['scale'], self.end_margin).to(self.device)
+        # else:
+        #     raise NotImplementedError("Other loss function has not been implemented yet!")
+        # logging.info('Using {} loss function'.format(self.train_opts['loss']))
+
+        # param_groups = [{'params': self.model.parameters()}, {'params': self.criterion.parameters()}]
+        
+        # if self.train_opts['type'] == 'sgd':
+        #     optim_opts = self.train_opts['sgd']
+        #     self.optim = optim.SGD(param_groups, optim_opts['init_lr'], momentum = optim_opts['momentum'], weight_decay = optim_opts['weight_decay'])
+        # elif self.train_opts['type'] == 'adam':
+        #     optim_opts = self.train_opts['adam']
+        #     self.optim = optim.Adam(param_groups, optim_opts['init_lr'], weight_decay = optim_opts['weight_decay'])
+        # logging.info("Using {} optimizer".format(self.train_opts['type']))
+
+        # self.epoch = self.train_opts['epoch']
+        # logging.info("Total train {} epochs".format(self.epoch))
+
+        # self.trainloader = DataLoader(self.trainset, shuffle = True, collate_fn = train_collate_fn, batch_size = self.train_opts['bs'] * device_num, num_workers = 32, pin_memory = True)
+        # self.voxtestloader = DataLoader(self.voxtestset, batch_size = 1, shuffle = False, num_workers = 8, pin_memory = True)
+        # self.lr_scheduler = lr_scheduler.ReduceLROnPlateau(self.optim, mode = self.train_opts['lr_scheduler_mode'], 
+        #                                                    factor = self.train_opts['lr_decay'], patience = self.train_opts['patience'], 
+        #                                                    min_lr = self.train_opts['min_lr'], verbose = True)
+        # self.current_epoch = 0
+
+        # if os.path.exists(self.train_opts['resume']):
+        #     self.load(self.train_opts['resume'])
+
+    def _move_to_device(self):
         device_num = 1
-
         if self.train_opts['device'] == 'gpu':
             self.device = torch.device('cuda')
-            device_ids = self.train_opts['gpus_id']
-            device_num = len(device_ids)
-            self.train_opts['check_interval'] = self.train_opts['check_interval'] // device_num
-            self.model = torch.nn.DataParallel(model.to(self.device), device_ids = device_ids)
+            if self.mode == 'test':
+                device_ids = [0]
+                device_num = 1
+            else:
+                device_ids = self.train_opts['gpus_id']
+                if device_num >= len(device_ids):
+                    device_num = len(device_ids)
+                else:
+                    logging.warn('There are only {} GPU cards in this machine, using all of them'.format(device_num))
+                    device_ids = list(range(device_num))
+            self.model = torch.nn.DataParallel(self.model.to(self.device), device_ids = device_ids)
             logging.info("Using GPU: {}".format(device_ids))
         else:
             self.device = torch.device('cpu')
-            logging.info('Using CPU')
-
-        if self.train_opts['collate'] == 'length_varied':
-            train_collate_fn = self.trainset.collate_fn
-            logging.info("Length of input utterances in different batch is varying")
-        elif self.train_opts['collate'] == 'kaldi':
-            train_collate_fn = self.trainset.kaldi_collate_fn
-            logging.info("Length of input utterances is fixed")
-        else:
-            raise NotImplementedError("Other collate method are not implemented!")
-
-        self.embedding_dim = self.model_opts[self.model_opts['arch']]['embedding_dim']
-        logging.info("Dimension of speaker embedding is {}".format(self.embedding_dim))
-
-        if self.train_opts['loss'] == 'CrossEntropy':
-            self.criterion = CrossEntropy(self.embedding_dim, n_spk).to(self.device)
-        elif self.train_opts['loss'] == 'LMCL':
-            margin_range = self.train_opts['margin']
-            self.init_margin = margin_range[0]
-            self.end_margin = margin_range[1]
-            if self.model_opts['arch'] in ['tdnn', 'etdnn']:
-                self.criterion = LMCL(self.embedding_dim, n_spk, self.train_opts['scale'], self.init_margin).to(self.device)
-            elif self.model_opts['arch'] == 'resnet':
-                self.criterion = LMCL(self.embedding_dim, n_spk, self.train_opts['scale'], self.end_margin).to(self.device)
-        elif self.train_opts['loss'] == 'LMCL_Uniform':
-            margin_range = self.train_opts['margin']
-            self.init_margin = margin_range[0]
-            self.end_margin = margin_range[1]
-            self.criterion = LMCLUniformLoss(self.embedding_dim, n_spk, self.train_opts['scale'], self.end_margin).to(self.device)
-        else:
-            raise NotImplementedError("Other loss function has not been implemented yet!")
-        logging.info('Using {} loss function'.format(self.train_opts['loss']))
-
-        param_groups = [{'params': self.model.parameters()}, {'params': self.criterion.parameters()}]
-        
-        if self.train_opts['type'] == 'sgd':
-            optim_opts = self.train_opts['sgd']
-            self.optim = optim.SGD(param_groups, optim_opts['init_lr'], momentum = optim_opts['momentum'], weight_decay = optim_opts['weight_decay'])
-        elif self.train_opts['type'] == 'adam':
-            optim_opts = self.train_opts['adam']
-            self.optim = optim.Adam(param_groups, optim_opts['init_lr'], weight_decay = optim_opts['weight_decay'])
-        logging.info("Using {} optimizer".format(self.train_opts['type']))
-
-        self.epoch = self.train_opts['epoch']
-        logging.info("Total train {} epochs".format(self.epoch))
-
-        self.trainloader = DataLoader(self.trainset, shuffle = True, collate_fn = train_collate_fn, batch_size = self.train_opts['bs'] * device_num, num_workers = 32, pin_memory = True)
-        self.voxtestloader = DataLoader(self.voxtestset, batch_size = 1, shuffle = False, num_workers = 8, pin_memory = True)
-        self.lr_scheduler = lr_scheduler.ReduceLROnPlateau(self.optim, mode = self.train_opts['lr_scheduler_mode'], 
-                                                           factor = self.train_opts['lr_decay'], patience = self.train_opts['patience'], 
-                                                           min_lr = self.train_opts['min_lr'], verbose = True)
-        self.current_epoch = 0
-
-        if os.path.exists(self.train_opts['resume']):
-            self.load(self.train_opts['resume'])
-
-    def _move_to_device(self):
-        pass
+            self.model = self.model.to(self.device)
+            logging.info("Using CPU")
 
     def parse_args(self):
         parser = argparse.ArgumentParser(description = "specify some important arguments")
@@ -185,8 +190,6 @@ class NNetTrainer(object):
         for epoch in range(start_epoch + 1, self.epoch + 1):
             self.current_epoch = epoch
             logging.info("Epoch {}".format(self.current_epoch))
-            if self.model_opts['arch'] in ['tdnn', 'etdnn']:
-                self._adjust_margin()
             stop = self._train_epoch()
             self.save()
             if stop == -1:
@@ -200,3 +203,10 @@ class NNetTrainer(object):
 
     def extract_embedding(self):
         raise NotImplementedError("Please implement extract_embedding function by yourself!")
+
+if __name__ == "__main__":
+    f = open("../../conf/nnet.yaml", 'r')
+    config = yaml.load(f, Loader = yaml.CLoader)
+    f.close()
+    trainer = NNetTrainer()
+    trainer()

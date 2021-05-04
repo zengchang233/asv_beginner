@@ -1,0 +1,5 @@
+n_fft: 400
+normalize: true
+delta: false
+cmvn_window: 400
+norm_vars: false

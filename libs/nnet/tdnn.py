@@ -1,15 +1,17 @@
+import sys
+sys.path.insert(0, "../../")
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import asv_beginner.libs.components.conv as conv
-import asv_beginner.libs.components.loss as loss
-import asv_beginner.libs.components.pooling as pooling
+import libs.components.conv as conv
+import libs.components.loss as loss
+import libs.components.pooling as pooling
 
 class XVector(nn.Module):
     def __init__(self, opts):
         super(XVector, self).__init__()
-        opts = opts[opts['arch']]
         context = opts['context']
         input_dim = opts['input_dim']
         hidden_dim = opts['hidden_dim']
@@ -17,11 +19,11 @@ class XVector(nn.Module):
         embedding_dim = opts['embedding_dim']
         attention_hidden_size = opts['attention_hidden_size']
         self.bn_first = opts['bn_first']
-        self.activation = nn.ReLU(negative_slope = 0.2)
+        self.activation = nn.ReLU()
         layers = []
 
         for i in range(layers_num):
-            layers.append(conv.TDNNLayer(input_dim, hidden_dim[i], dilation = context[i], stride = 1, bn_first = self.bn_first))
+            layers.append(conv.TDNNLayer(input_dim, hidden_dim[i], context = context[i], stride = 1, bn_first = self.bn_first))
             input_dim = hidden_dim[i]
 
         self.frame_level = nn.Sequential(*layers)
@@ -51,7 +53,7 @@ class XVector(nn.Module):
         self.bn2 = nn.BatchNorm1d(embedding_dim)
 
     def extract_embedding(self, x):
-        x = self.tdnn(x)
+        x = self.frame_level(x)
         x = self.pooling(x)
         x.squeeze_(1)
         x_a = self.fc1(x)
@@ -73,3 +75,18 @@ class XVector(nn.Module):
             x = self.activation(x)
             x = self.bn2(x)
         return x
+
+        
+if __name__ == "__main__":
+    import yaml
+    f = open("../../conf/nnet.yaml")
+    config = yaml.load(f, Loader = yaml.CLoader)
+    f.close()
+    model_opts = config['model']
+    arch = model_opts['arch']
+    xv_opts = model_opts[arch]
+    tdnn = XVector(xv_opts)
+    print(tdnn)
+    inputs = torch.randn(4, 40, 300)
+    outputs = tdnn(inputs)
+    print(outputs.shape)

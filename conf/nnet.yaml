@@ -10,10 +10,16 @@ data:
   dev_number: 1000
   
   kaldi:
-
+    rate: 16000
+    feat_type: fbank
+    spectrogram:
+      n_fft: 400
+    fbank:
+      n_fft: 400
+    mfcc:
+      n_fft: 400
 
   python:
-    dev_number: 1000
     rate: 16000
     feat_type: mel_spectrogram 
     mel_spectrogram: # fbank config
@@ -24,7 +30,7 @@ data:
       win_len: 0.025
       win_shift: 0.01
       cmvn_window: 400
-      norm_vars: false
+      norm_vars: false # in torchaudio, if you use norm_vars=true, the extracted feature will include NaN value. It may be a bug of torchaudio
     spectrogram: # stft config
       n_fft: 400 
       normalize: true
