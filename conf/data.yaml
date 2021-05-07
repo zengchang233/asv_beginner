@@ -5,5 +5,5 @@ train_manifest: /groups1/gcc50479/spk/data/manifest/voxceleb1_manifest.csv # pat
 win_len: 0.025
 win_shift: 0.01
 rate: 16000
-data_format: python_fbank # kaldi or python
+feat_type: python_fbank # kaldi or python
 dev_number: 1000

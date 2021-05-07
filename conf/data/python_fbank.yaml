@@ -1,5 +1,7 @@
 n_fft: 400
-num_bin: 80
+n_mels: 40
+win_length: 400
+hop_length: 160
 normalize: true
 delta: false
 cmvn_window: 400

@@ -1,44 +1,43 @@
 import sys
 import time
 import logging
-import argparse
 import yaml
 import os
 sys.path.insert(0, "../../")
 
 import torch
 import libs.dataio.dataset as dataset
+from libs.utils.utils import read_config
 
 class NNetTrainer(object):
-    def __init__(self, data_opts, model_opts, train_opts):
-        self.train_opts = opts['train']
-        self.model_opts = opts['model']
-        self.data_opts = opts['data']
-
-        args = vars(self.parse_args())
-        self.data_opts[self.data_opts['data_format']]['feat_type'] = args['feat_type']
-        # self.model_opts['arch'] = args["arch"]
-        # self.model_opts[args['arch']]['input_dim'] = args['input_dim']
-        self.model_opts['input_dim'] = args['input_dim']
-        self.train_opts['loss'] = args["loss"]
-        self.train_opts['bs'] = args['bs']
-        self.train_opts['collate'] = args['collate']
-        self.train_opts['device'] = args['device']
+    def __init__(self, data_opts = None, model_opts = None, train_opts = None, args = None):
+        # set configuration according to options parsed by argparse module
+        data_opts['feat_type'] = args['feat_type']
+        model_opts['arch'] = args["arch"]
+        model_opts['input_dim'] = args['input_dim']
+        train_opts['loss'] = args["loss"]
+        train_opts['bs'] = args['bs']
+        train_opts['collate'] = args['collate']
+        train_opts['device'] = args['device']
         if "resume" in args:
             self.train_opts['resume'] = args["resume"]
 
+        # if the path corresponding to resume option exists, resume training process from exp dir
         if os.path.exists(self.train_opts['resume']):
             self.log_time = self.train_opts['resume'].split('/')[1]
         else:
             self.log_time = time.asctime(time.localtime(time.time())).replace(' ', '_').replace(':', '_')
         logging.info(self.log_time)
 
-        # if self.data_opts['data_format'] == 'kaldi': 
-        #     self.trainset = dataset.SpeechTrainDataset(self.data_opts)
-        # logging.info("Using {} to extract features".format(self.data_opts['data_format']))
-        # logging.info("Using {} feature".format(args['feat_type']))
+        self.train_opts = train_opts
+        self.model_opts = model_opts
+        self.data_opts = data_opts
 
-        # n_spk = self.trainset.n_spk
+        # initialize training and dev dataset
+        self.trainset = dataset.SpeechTrainDataset(self.data_opts)
+        logging.info("using {} to extract features".format(args['feat_type'].split('_')[0]))
+        logging.info("Using {} feature".format(args['feat_type'].split('_')[-1]))
+        n_spk = self.trainset.n_spk
 
         # if self.model_opts['arch'] == 'tdnn' or self.model_opts['arch'] == 'etdnn':
         #     import components.models.tdnn as tdnn
@@ -119,18 +118,6 @@ class NNetTrainer(object):
             self.model = self.model.to(self.device)
             logging.info("Using CPU")
 
-    def parse_args(self):
-        parser = argparse.ArgumentParser(description = "specify some important arguments")
-        parser.add_argument("--feat-type", type = str, default = 'mfcc', dest = "feat_type", help = 'input feature')
-        parser.add_argument("--input-dim", type = int, default = 30, dest = "input_dim", help = "dimension of input feature")
-        parser.add_argument("--arch", type = str, default = "tdnn", choices = ["resnet", "tdnn", "etdnn", "ftdnn", "rawnet", "wav2spk"], help = "specify model architecture")
-        parser.add_argument("--loss", type = str, default = "AMSoftmax", choices = ["AMSoftmax", "CrossEntropy", "ASoftmax", "TripletLoss"], help = "specify loss function")
-        parser.add_argument("--bs", type = int, default = 64, help = "specify batch size for training")
-        parser.add_argument("--collate", type = str, default = "length_varied", choices = ["kaldi", "length_varied"], help = "specify collate function in DataLoader")
-        parser.add_argument("--resume", type = str, help = "if you give a ckpt path to this argument and if the ckpt file exists, it will resume training based on this ckpt file. Otherwise, it will start a new training process")
-        parser.add_argument("--device", default = 'gpu', choices = ['gpu', 'cpu'], help = 'designate the device on which the model will run')
-        return parser.parse_args()
-
     def model_average(self, avg_num = 4):
         model_state_dict = {}
         for i in range(avg_num):
@@ -169,19 +156,7 @@ class NNetTrainer(object):
         self.optim.load_state_dict(ckpt['optimizer'])
         self.current_epoch = ckpt['epoch']
 
-    def __call__(self):
-        os.makedirs('exp/{}'.format(self.log_time), exist_ok = True)
-        if not os.path.exists("exp/{}/config.yaml".format(self.log_time)):
-            with open("exp/{}/config.yaml".format(self.log_time), 'w') as f:
-                yaml.dump(self.data_opts, f)
-                yaml.dump(self.model_opts, f)
-                yaml.dump(self.train_opts, f)
-        # train, test 
-        logging.info("start training")
-        self.train()
-        self.model_average(3)
-
-    def train(self):
+    def train(self, model, optimizer, criterion, train_loader):
         start_epoch = self.current_epoch
         self.best_dev_epoch = self.current_epoch
         self.best_dev_loss = 1000
@@ -195,18 +170,22 @@ class NNetTrainer(object):
             if stop == -1:
                 break 
 
-    def train_epoch(self):
-        raise NotImplementedError("Please implement extract_embedding function by yourself!")
-
-    def _dev(self):
-        raise NotImplementedError("Please implement extract_embedding function by yourself!")
-
-    def extract_embedding(self):
-        raise NotImplementedError("Please implement extract_embedding function by yourself!")
+    def __call__(self):
+        os.makedirs('exp/{}'.format(self.log_time), exist_ok = True)
+        if not os.path.exists("exp/{}/config.yaml".format(self.log_time)):
+            with open("exp/{}/config.yaml".format(self.log_time), 'w') as f:
+                yaml.dump(self.data_opts, f)
+                yaml.dump(self.model_opts, f)
+                yaml.dump(self.train_opts, f)
+        # train, test 
+        logging.info("start training")
+        self.train()
+        self.model_average(3)
 
 if __name__ == "__main__":
-    f = open("../../conf/nnet.yaml", 'r')
-    config = yaml.load(f, Loader = yaml.CLoader)
-    f.close()
-    trainer = NNetTrainer()
-    trainer()
+    def main():
+        data_config = read_config("../../conf/data.yaml")
+        model_config = read_config("../../conf/model.yaml")
+        train_config = read_config("../../conf/train.yaml")
+
+    main()

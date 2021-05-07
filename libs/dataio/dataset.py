@@ -1,23 +1,35 @@
 import os
+import math
 import random
 import logging
 import warnings
-warnings.filterwarnings('ingore')
+import csv
+import sys
+warnings.filterwarnings('ignore')
+sys.path.insert(0, "../../")
 
+import numpy as np
+import torch
 from torch.utils.data import Dataset
 import torchaudio as ta
 from torchaudio.transforms import *
 from torchaudio.compliance.kaldi import *
 
+from libs.utils.utils import read_config
 
 class SpeechTrainDataset(Dataset):
     def __init__(self, opts):
+        # read config from opts
         frame_range = opts['frames'] # frame number range in training
         self.lower_frame_num = frame_range[0]
         self.higher_frame_num = frame_range[1]
         TRAIN_MANIFEST = opts['train_manifest']
         self.rate = opts['rate']
-        self.opts = opts
+        self.win_len = opts['win_len']
+        self.win_shift = opts['win_shift']
+        feat_type = opts['feat_type']
+
+        # read audio file path from manifest
         self.dataset = []
         current_sid = -1
         total_duration = 0
@@ -30,15 +42,25 @@ class SpeechTrainDataset(Dataset):
                 self.dataset[-1].append((filename, float(duration), int(samplerate)))
                 total_duration += eval(duration)
         self.n_spk = len(self.dataset)
+
+        # split dev dataset
         self.split_train_dev(opts['dev_number'])
+
+        # compute the length of dataset according to mean duration and total duration
         total_duration -= self.dev_total_duration
-        mean_duration_per_utt = (np.mean(frame_range) - 1) * self.opts['win_shift'] + self.opts['win_len']
+        mean_duration_per_utt = (np.mean(frame_range) - 1) * self.win_shift + self.win_len
         self.count = math.floor(total_duration / mean_duration_per_utt) # make sure each sampling point in data will be used
-        if opts['data_format'] == 'python':
-            from asv_beginner.libs.dataio.python_feature import FeatureExtractor
-        elif opts['data_format'] == 'kaldi':
-            from asv_beginner.libs.dataio.kaldi_feature import FeatureExtractor
-        self.feature_extractor = feature.FeatureExtractor(opts[opts['data_format']])
+
+        # set feature extractor according to feature type
+        if 'kaldi' in feat_type:
+            from libs.dataio.feature import KaldiFeatureExtractor as FeatureExtractor
+        else:
+            from libs.dataio.feature import FeatureExtractor
+        try:
+            feature_opts = read_config("conf/data/{}.yaml".format(feat_type))
+        except:
+            feature_opts = read_config("../../conf/data/{}.yaml".format(feat_type)) # for test
+        self.feature_extractor = FeatureExtractor(self.rate, feat_type.split("_")[-1], feature_opts)
 
     def split_train_dev(self, dev_number = 1000):
         self.dev = []
@@ -65,7 +87,7 @@ class SpeechTrainDataset(Dataset):
 
     def collate_fn(self, batch):
         frame = random.randint(self.lower_frame_num, self.higher_frame_num) # random select a frame number in uniform distribution
-        duration = (frame - 1) * self.opts['win_shift'] + self.opts['win_len'] # duration in time of one training speech segment
+        duration = (frame - 1) * self.win_shift + self.win_len # duration in time of one training speech segment
         samples_num = int(duration * self.rate) # duration in sample point of one training speech segment
         wave = []
         for sid in batch:
@@ -78,7 +100,7 @@ class SpeechTrainDataset(Dataset):
                 t, sr = audio[1], audio[2]
                 samples_len = int(t * sr)
                 start = int(random.uniform(0, t) * sr) # random select start point of speech
-                _y, _ = self._load_audio(audio[0], start = start, stop = samples_len) # read speech data from start point to the end
+                _y, _ = self._load_audio(audio[0], offset = start, length = samples_len) # read speech data from start point to the end
                 if _y is not None:
                     y.append(_y)
                     n_samples += len(_y)
@@ -117,3 +139,13 @@ class SpeechTrainDataset(Dataset):
             yield feat, spk[idx], os.path.basename(wav_path).replace('.wav', '.npy')
             #  yield feat, wav_path
             idx += 1 
+
+if __name__ == "__main__":
+    from torch.utils.data import DataLoader
+    opts = read_config("../../conf/data.yaml")
+    train_dataset = SpeechTrainDataset(opts)
+    train_loader = DataLoader(train_dataset, batch_size = 4, shuffle = True, collate_fn = train_dataset.collate_fn, num_workers = 4, pin_memory = False)
+    trainiter = iter(train_loader)
+    feature, label = next(trainiter)
+    print(feature.shape)
+    print(label)
