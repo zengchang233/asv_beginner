@@ -8,23 +8,25 @@ sys.path.insert(0, "../../")
 import torch
 import libs.dataio.dataset as dataset
 from libs.utils.utils import read_config
+from libs.utils.config_parser import ArgParser
 
 class NNetTrainer(object):
     def __init__(self, data_opts = None, model_opts = None, train_opts = None, args = None):
         # set configuration according to options parsed by argparse module
+        print(args)
+        self.mode = args['mode']
         data_opts['feat_type'] = args['feat_type']
         model_opts['arch'] = args["arch"]
         model_opts['input_dim'] = args['input_dim']
         train_opts['loss'] = args["loss"]
         train_opts['bs'] = args['bs']
-        train_opts['collate'] = args['collate']
         train_opts['device'] = args['device']
         if "resume" in args:
-            self.train_opts['resume'] = args["resume"]
+            train_opts['resume'] = args["resume"]
 
         # if the path corresponding to resume option exists, resume training process from exp dir
-        if os.path.exists(self.train_opts['resume']):
-            self.log_time = self.train_opts['resume'].split('/')[1]
+        if os.path.exists(train_opts['resume']):
+            self.log_time = train_opts['resume'].split('/')[1]
         else:
             self.log_time = time.asctime(time.localtime(time.time())).replace(' ', '_').replace(':', '_')
         logging.info(self.log_time)
@@ -39,6 +41,18 @@ class NNetTrainer(object):
         logging.info("Using {} feature".format(args['feat_type'].split('_')[-1]))
         n_spk = self.trainset.n_spk
 
+        self.epoch = self.train_opts['epoch']
+        logging.info("Total train {} epochs".format(self.epoch))
+        self.current_epoch = 0
+
+        # build dataloader
+        self.build_dataloader()
+        # train_collate_fn = self.trainset.collate_fn
+        # self.trainloader = DataLoader(self.trainset, shuffle = True, collate_fn = train_collate_fn, batch_size = self.train_opts['bs'] * device_num, num_workers = 32, pin_memory = True)
+        # self.voxtestloader = DataLoader(self.voxtestset, batch_size = 1, shuffle = False, num_workers = 8, pin_memory = True)
+
+        # build model
+        self.build_model()
         # if self.model_opts['arch'] == 'tdnn' or self.model_opts['arch'] == 'etdnn':
         #     import components.models.tdnn as tdnn
         #     model = tdnn.SpeakerEmbNet(self.model_opts)
@@ -48,13 +62,18 @@ class NNetTrainer(object):
         # else:
         #     raise NotImplementedError("Other models are not implemented!")
         # logging.info("Using {} neural network".format(self.model_opts['arch']))
-
-
-        # train_collate_fn = self.trainset.collate_fn
-
         # self.embedding_dim = self.model_opts[self.model_opts['arch']]['embedding_dim']
         # logging.info("Dimension of speaker embedding is {}".format(self.embedding_dim))
 
+        # resume model from saved path
+        if os.path.exists(self.train_opts['resume']):
+            self.load(self.train_opts['resume'])
+
+        # mv to device
+        self._move_to_device()
+
+        # build loss
+        self.build_criterion()
         # if self.train_opts['loss'] == 'CrossEntropy':
         #     self.criterion = CrossEntropy(self.embedding_dim, n_spk).to(self.device)
         # elif self.train_opts['loss'] == 'LMCL':
@@ -74,8 +93,9 @@ class NNetTrainer(object):
         #     raise NotImplementedError("Other loss function has not been implemented yet!")
         # logging.info('Using {} loss function'.format(self.train_opts['loss']))
 
+        # build optimizer
+        self.build_optimizer()
         # param_groups = [{'params': self.model.parameters()}, {'params': self.criterion.parameters()}]
-        
         # if self.train_opts['type'] == 'sgd':
         #     optim_opts = self.train_opts['sgd']
         #     self.optim = optim.SGD(param_groups, optim_opts['init_lr'], momentum = optim_opts['momentum'], weight_decay = optim_opts['weight_decay'])
@@ -83,22 +103,31 @@ class NNetTrainer(object):
         #     optim_opts = self.train_opts['adam']
         #     self.optim = optim.Adam(param_groups, optim_opts['init_lr'], weight_decay = optim_opts['weight_decay'])
         # logging.info("Using {} optimizer".format(self.train_opts['type']))
-
-        # self.epoch = self.train_opts['epoch']
-        # logging.info("Total train {} epochs".format(self.epoch))
-
-        # self.trainloader = DataLoader(self.trainset, shuffle = True, collate_fn = train_collate_fn, batch_size = self.train_opts['bs'] * device_num, num_workers = 32, pin_memory = True)
-        # self.voxtestloader = DataLoader(self.voxtestset, batch_size = 1, shuffle = False, num_workers = 8, pin_memory = True)
         # self.lr_scheduler = lr_scheduler.ReduceLROnPlateau(self.optim, mode = self.train_opts['lr_scheduler_mode'], 
         #                                                    factor = self.train_opts['lr_decay'], patience = self.train_opts['patience'], 
         #                                                    min_lr = self.train_opts['min_lr'], verbose = True)
-        # self.current_epoch = 0
 
-        # if os.path.exists(self.train_opts['resume']):
-        #     self.load(self.train_opts['resume'])
+    def build_model(self):
+        pass
+        # raise NotImplementedError("Please implement this function by yourself!")
+
+    def build_criterion(self):
+        pass
+        # raise NotImplementedError("Please implement this function by yourself!")
+
+    def build_optimizer(self): 
+        pass
+        # raise NotImplementedError("Please implement this function by yourself!")
+
+    def build_dataloader(self): 
+        pass
+        # raise NotImplementedError("Please implement this function by yourself!")
+    
+    def train_epoch(self): 
+        pass
+        # raise NotImplementedError("Please implement this function by yourself!")
 
     def _move_to_device(self):
-        device_num = 1
         if self.train_opts['device'] == 'gpu':
             self.device = torch.device('cuda')
             if self.mode == 'test':
@@ -106,6 +135,7 @@ class NNetTrainer(object):
                 device_num = 1
             else:
                 device_ids = self.train_opts['gpus_id']
+                device_num = torch.cuda.device_count()
                 if device_num >= len(device_ids):
                     device_num = len(device_ids)
                 else:
@@ -137,12 +167,13 @@ class NNetTrainer(object):
         self.model.load_state_dict(model_state_dict)
 
     def save(self, filename = None):
+        model = self.model.module # DO NOT save DataParallel wrapper
         if filename is None:
-            torch.save({'epoch': self.current_epoch, 'state_dict': self.model.state_dict(), 'criterion': self.criterion,
+            torch.save({'epoch': self.current_epoch, 'state_dict': model.state_dict(), 'criterion': self.criterion,
                         'lr_scheduler': self.lr_scheduler.state_dict(), 'optimizer': self.optim.state_dict()},
                         'exp/{}/net_{}.pth'.format(self.log_time, self.current_epoch))
         else:
-            torch.save({'epoch': self.current_epoch, 'state_dict': self.model.state_dict(), 'criterion': self.criterion,
+            torch.save({'epoch': self.current_epoch, 'state_dict': model.state_dict(), 'criterion': self.criterion,
                         'lr_scheduler': self.lr_scheduler.state_dict(), 'optimizer': self.optim.state_dict()},
                         'exp/{}/{}'.format(self.log_time, filename))
 
@@ -165,13 +196,14 @@ class NNetTrainer(object):
         for epoch in range(start_epoch + 1, self.epoch + 1):
             self.current_epoch = epoch
             logging.info("Epoch {}".format(self.current_epoch))
-            stop = self._train_epoch()
+            stop = self.train_epoch()
             self.save()
             if stop == -1:
                 break 
 
     def __call__(self):
         os.makedirs('exp/{}'.format(self.log_time), exist_ok = True)
+        
         if not os.path.exists("exp/{}/config.yaml".format(self.log_time)):
             with open("exp/{}/config.yaml".format(self.log_time), 'w') as f:
                 yaml.dump(self.data_opts, f)
@@ -180,12 +212,15 @@ class NNetTrainer(object):
         # train, test 
         logging.info("start training")
         self.train()
-        self.model_average(3)
 
 if __name__ == "__main__":
     def main():
+        parser = ArgParser()
+        args = parser.parse_args()
+        args = vars(args)
         data_config = read_config("../../conf/data.yaml")
         model_config = read_config("../../conf/model.yaml")
         train_config = read_config("../../conf/train.yaml")
+        trainer = NNetTrainer(data_config, model_config, train_config, args)
 
     main()
