@@ -130,3 +130,6 @@ dmypy.json
 
 # vscode
 .vscode
+
+demos/xvector/exp/
+demos/xvector/job.sh
