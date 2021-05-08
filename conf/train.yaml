@@ -4,7 +4,7 @@ type: sgd
 bs: 32
 lr_decay: 0.1
 lr_scheduler: reducep
-check_interval: 100
+check_interval: 1000
 lr_scheduler_mode: min
 min_lr: 0.000001 
 patience: 5
