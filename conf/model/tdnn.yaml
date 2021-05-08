@@ -1,5 +1,5 @@
 # config file for tdnn, etdnn
-input_dim: 40
+input_dim: 30
 hidden_dim: [512,512,512,512,1500]
 context: [[-2,-1,0,1,2],[-2,0,2],[-3,0,3],[0],[0]]
 tdnn_layers: 5

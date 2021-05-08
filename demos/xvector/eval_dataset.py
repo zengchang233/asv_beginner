@@ -1,6 +1,6 @@
 import sys
 import os
-sys.path.insert(0, '../../../')
+sys.path.insert(0, '../../')
 
 import torch
 from torch.utils.data import Dataset
@@ -49,12 +49,14 @@ class SpeechEvalDataset(Dataset):
         utt_path = os.path.join(self.root_path, utt)
         data, rate = self._load_audio(utt_path)
         feat = self.feature_extractor(data)
-        return feat.unsqueeze(0), utt
+        return feat, utt
     
 if __name__ == '__main__':
     from torch.utils.data import DataLoader
-    opts = read_config("../conf/data.yaml")
-    test_dataset = VoxTestset(opts)
-    feature, uttid = test_dataset[0]
+    opts = read_config("./conf/data.yaml")
+    test_dataset = SpeechEvalDataset(opts)
+    testloader = DataLoader(test_dataset, batch_size = 1, shuffle = False, num_workers = 4)
+    testiter = iter(testloader)
+    feature, uttid = next(testiter)
     print(feature.shape)
     print(uttid)

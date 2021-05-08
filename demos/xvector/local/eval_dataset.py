@@ -49,12 +49,12 @@ class SpeechEvalDataset(Dataset):
         utt_path = os.path.join(self.root_path, utt)
         data, rate = self._load_audio(utt_path)
         feat = self.feature_extractor(data)
-        return feat.unsqueeze(0), utt
+        return feat, utt
     
 if __name__ == '__main__':
     from torch.utils.data import DataLoader
     opts = read_config("../conf/data.yaml")
-    test_dataset = VoxTestset(opts)
+    test_dataset = SpeechEvalDataset(opts)
     feature, uttid = test_dataset[0]
     print(feature.shape)
     print(uttid)

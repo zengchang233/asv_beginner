@@ -46,7 +46,7 @@ class LMCL(AMSoftmax):
         super(LMCL, self).__init__(embedding_size, num_classes, s, margin)
 
     def forward(self, embeddings, labels):
-        super.forward(embeddings, labels)
+        super().forward(embeddings, labels)
 
 class AAMSoftmax(nn.Module):
     def __init__(self):

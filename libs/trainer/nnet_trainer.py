@@ -6,9 +6,12 @@ import os
 sys.path.insert(0, "../../")
 
 import torch
+from torch.utils.data import DataLoader
+
 import libs.dataio.dataset as dataset
 from libs.utils.utils import read_config
 from libs.utils.config_parser import ArgParser
+from libs.components import loss
 
 class NNetTrainer(object):
     def __init__(self, data_opts = None, model_opts = None, train_opts = None, args = None):
@@ -48,17 +51,6 @@ class NNetTrainer(object):
 
         # build model
         self.build_model()
-        # if self.model_opts['arch'] == 'tdnn' or self.model_opts['arch'] == 'etdnn':
-        #     import components.models.tdnn as tdnn
-        #     model = tdnn.SpeakerEmbNet(self.model_opts)
-        # elif self.model_opts['arch'] == 'resnet':
-        #     import components.models.resnet as resnet
-        #     model = resnet.SpeakerEmbNet(self.model_opts)
-        # else:
-        #     raise NotImplementedError("Other models are not implemented!")
-        # logging.info("Using {} neural network".format(self.model_opts['arch']))
-        # self.embedding_dim = self.model_opts[self.model_opts['arch']]['embedding_dim']
-        # logging.info("Dimension of speaker embedding is {}".format(self.embedding_dim))
 
         # resume model from saved path
         if os.path.exists(self.train_opts['resume']):
@@ -69,58 +61,69 @@ class NNetTrainer(object):
         
         # build dataloader
         self.build_dataloader()
-        # train_collate_fn = self.trainset.collate_fn
-        # self.trainloader = DataLoader(self.trainset, shuffle = True, collate_fn = train_collate_fn, batch_size = self.train_opts['bs'] * device_num, num_workers = 32, pin_memory = True)
-        # self.voxtestloader = DataLoader(self.voxtestset, batch_size = 1, shuffle = False, num_workers = 8, pin_memory = True)
 
         # build loss
         self.build_criterion()
-        # if self.train_opts['loss'] == 'CrossEntropy':
-        #     self.criterion = CrossEntropy(self.embedding_dim, n_spk).to(self.device)
-        # elif self.train_opts['loss'] == 'LMCL':
-        #     margin_range = self.train_opts['margin']
-        #     self.init_margin = margin_range[0]
-        #     self.end_margin = margin_range[1]
-        #     if self.model_opts['arch'] in ['tdnn', 'etdnn']:
-        #         self.criterion = LMCL(self.embedding_dim, n_spk, self.train_opts['scale'], self.init_margin).to(self.device)
-        #     elif self.model_opts['arch'] == 'resnet':
-        #         self.criterion = LMCL(self.embedding_dim, n_spk, self.train_opts['scale'], self.end_margin).to(self.device)
-        # elif self.train_opts['loss'] == 'LMCL_Uniform':
-        #     margin_range = self.train_opts['margin']
-        #     self.init_margin = margin_range[0]
-        #     self.end_margin = margin_range[1]
-        #     self.criterion = LMCLUniformLoss(self.embedding_dim, n_spk, self.train_opts['scale'], self.end_margin).to(self.device)
-        # else:
-        #     raise NotImplementedError("Other loss function has not been implemented yet!")
-        # logging.info('Using {} loss function'.format(self.train_opts['loss']))
 
         # build optimizer
         self.build_optimizer()
-        # param_groups = [{'params': self.model.parameters()}, {'params': self.criterion.parameters()}]
-        # if self.train_opts['type'] == 'sgd':
-        #     optim_opts = self.train_opts['sgd']
-        #     self.optim = optim.SGD(param_groups, optim_opts['init_lr'], momentum = optim_opts['momentum'], weight_decay = optim_opts['weight_decay'])
-        # elif self.train_opts['type'] == 'adam':
-        #     optim_opts = self.train_opts['adam']
-        #     self.optim = optim.Adam(param_groups, optim_opts['init_lr'], weight_decay = optim_opts['weight_decay'])
-        # logging.info("Using {} optimizer".format(self.train_opts['type']))
-        # self.lr_scheduler = lr_scheduler.ReduceLROnPlateau(self.optim, mode = self.train_opts['lr_scheduler_mode'], 
-        #                                                    factor = self.train_opts['lr_decay'], patience = self.train_opts['patience'], 
-        #                                                    min_lr = self.train_opts['min_lr'], verbose = True)
 
     def build_model(self):
+        '''
+        You MUST overwrite this function.
+        And you have to set two attributions in this function.
+        1. embedding_dim
+        2. model
+        '''
+        # you MUST overwrite this function
         raise NotImplementedError("Please implement this function by yourself!")
 
     def build_criterion(self):
-        raise NotImplementedError("Please implement this function by yourself!")
+        '''
+        You can overwrite this function.
+        If so, you have to set the following attribution in this function.
+        1. criterion
+        '''
+        if self.train_opts['loss'] == 'CrossEntropy':
+            self.criterion = loss.CrossEntropy(self.embedding_dim, self.n_spk).to(self.device)
+        elif self.train_opts['loss'] == 'AMSoftmax':
+            self.criterion = loss.AMSoftmax(self.embedding_dim, self.n_spk, self.train_opts['scale'], self.train_opts['margin']).to(self.device)
+        else:
+            raise NotImplementedError("Other loss function has not been implemented yet!")
+        logging.info('Using {} loss function'.format(self.train_opts['loss']))
 
     def build_optimizer(self): 
-        raise NotImplementedError("Please implement this function by yourself!")
+        '''
+        You can overwrite this function.
+        If so, you have to set the following attribution in this function.
+        1. optim
+        2. lr_scheduler
+        '''
+        param_groups = [{'params': self.model.parameters()}, {'params': self.criterion.parameters()}]
+        if self.train_opts['type'] == 'sgd':
+            optim_opts = self.train_opts['sgd']
+            self.optim = optim.SGD(param_groups, optim_opts['init_lr'], momentum = optim_opts['momentum'], weight_decay = optim_opts['weight_decay'])
+        elif self.train_opts['type'] == 'adam':
+            optim_opts = self.train_opts['adam']
+            self.optim = optim.Adam(param_groups, optim_opts['init_lr'], weight_decay = optim_opts['weight_decay'])
+        logging.info("Using {} optimizer".format(self.train_opts['type']))
+        # you can define your scheduler according to your preference
+        # self.lr_scheduler = ...
 
     def build_dataloader(self): 
-        raise NotImplementedError("Please implement this function by yourself!")
+        '''
+        You can overwrite this function.
+        If so, you have to set the following attribution in this function.
+        1. trainloader 
+        '''
+        train_collate_fn = self.trainset.collate_fn
+        self.trainloader = DataLoader(self.trainset, shuffle = True, collate_fn = train_collate_fn, batch_size = self.train_opts['bs'] * self.device_num, num_workers = 16, pin_memory = True)
     
     def train_epoch(self): 
+        # you MUST overwrite this function
+        raise NotImplementedError("Please implement this function by yourself!")
+
+    def _dev(self): 
         raise NotImplementedError("Please implement this function by yourself!")
 
     def _move_to_device(self):
@@ -201,7 +204,6 @@ class NNetTrainer(object):
 
     def __call__(self):
         os.makedirs('exp/{}'.format(self.log_time), exist_ok = True)
-        
         if not os.path.exists("exp/{}/config.yaml".format(self.log_time)):
             with open("exp/{}/config.yaml".format(self.log_time), 'w') as f:
                 yaml.dump(self.data_opts, f)

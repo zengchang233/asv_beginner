@@ -1,3 +1,5 @@
+from functools import partial
+
 import torch
 import torch.nn as nn
 import torchaudio as ta
@@ -54,11 +56,30 @@ class FeatureExtractor(nn.Module):
 class KaldiFeatureExtractor(nn.Module): 
     def __init__(self, rate, feat_type, opts): 
         super(KaldiFeatureExtractor, self).__init__()
-        pass
+        self.rate = rate
+        self.feat_type = feat_type
+        self.opts = opts
+        if self.feat_type == 'spectrogram': # torchaudio spectrogram
+            self.feat = partial(spectrogram, frame_length = self.opts['frame_length'],
+                           frame_shift = self.opts['frame_shift'],
+                           sample_frequency = self.rate)
+        elif self.feat_type == 'fbank': # torchaudio fbank
+            self.feat = partial(fbank, sample_frequency = self.rate,
+                           frame_length = self.opts['frame_length'],
+                           frame_shift = self.opts['frame_shift'],
+                           num_mel_bins = self.opts['num_mel_bins'],
+                           use_energy = self.opts['use_energy'],
+                           use_log_fbank = self.opts['use_log_fbank'])
+        elif self.feat_type == 'mfcc': # transforms.MFCC() torchaudio mfcc
+            self.feat = partial(mfcc, sample_frequency = self.rate,
+                           frame_length = self.opts['frame_length'],
+                           frame_shift = self.opts['frame_shift'],
+                           num_ceps = self.opts['num_ceps'],
+                           num_mel_bins = self.opts['num_mel_bins'],
+                           use_energy = self.opts['use_energy'])
+        else:
+            raise NotImplementedError("Other features are not implemented!")
 
-    def _parse_opts(self, opts):
-        pass
-    
     def forward(self, wave): 
         '''
         Params:
@@ -66,14 +87,18 @@ class KaldiFeatureExtractor(nn.Module):
         Returns:
             feature: specified feature, shape is (B, C, T)
         '''
-        pass
+        feature = []
+        for _ in range(wave.size(0)):
+            feature.append(self.feat(wave).unsqueeze(0))
+        feature = torch.cat(feature, dim = 0)
+        return feature.transpose(2,1).contiguous()
 
 if __name__ == "__main__":
     import yaml
-    f = open("../conf/config.yaml")
+    f = open("../../conf/data/kaldi_mfcc.yaml")
     config = yaml.load(f, Loader = yaml.CLoader)
     f.close()
-    feature_extractor = FeatureExtractor(config['feature'])
+    feature_extractor = KaldiFeatureExtractor(16000, 'mfcc', config)
     a = torch.randn(4, 45000)
     a = a / a.abs().max()
     feature = feature_extractor(a)

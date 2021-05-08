@@ -1,13 +1,17 @@
 #! /bin/bash
 
-# ln -s `which python3` ../../../python3
-# export PYTHONPATH=../../../:$PYTHONPATH
-alias python3=/home/acc12416pz/anaconda3/envs/torch1.7/bin/python3
+if [ ! -e ./python3 ]; then
+    ln -s `which python3` ./python3
+    export PYTHONPATH=./:$PYTHONPATH
+fi
 
-stage=0
+# conda activate torch1.7
+# alias python3=/home/acc12416pz/anaconda3/envs/torch1.7/bin/python3
+
+stage=2
 # train a frontend module
 if [ $stage -le 0 ]; then
-    python3 local/nnet/xv_trainer.py --device gpu
+    /home/acc12416pz/anaconda3/envs/torch1.7/bin/python3 local/nnet/xv_trainer.py --device gpu
 fi
 
 # train a backend module
@@ -16,6 +20,6 @@ fi
 # fi
 
 # evaluation on test set
-# if [ $stage -le 2 ]; then
-#     python3 evaluation.py
-# fi 
+if [ $stage -le 2 ]; then
+    python3 local/evaluation.py -e Sat_May__8_11_24_59_2021 -m best_dev_model.pth -d cpu -l far
+fi 
