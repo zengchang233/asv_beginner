@@ -38,8 +38,7 @@ class AMSoftmax(nn.Module):
         margin = torch.zeros_like(logits)
         margin.scatter_(1, labels.view(-1,1), self.margin)
         m_logits = self.s * (logits - margin)
-        loss = F.cross_entropy(m_logits + eps, labels)
-        #  return logits, m_logits
+        loss = F.cross_entropy(m_logits, labels)
         return loss, logits
 
 class LMCL(AMSoftmax):

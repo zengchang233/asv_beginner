@@ -1,49 +1,51 @@
+import logging
+logging.basicConfig(level = logging.INFO, filename = 'train.log', filemode = 'w', format = "%(asctime)s [%(filename)s:%(lineno)d - %(levelname)s ] %(message)s")
 import sys
-sys.path.insert(0, "../../../../")
+sys.path.insert(0, "../../")
+import math
 
 import torch
+from torch.utils.data import DataLoader
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
+from tqdm import tqdm
 
 from libs.trainer import nnet_trainer
 from libs.dataio import dataset
 from libs.nnet import tdnn
 from libs.components import loss
+from libs.utils.config_parser import ArgParser
+from libs.utils.utils import read_config
 from eval_dataset import SpeechEvalDataset
 
 class XVTrainer(nnet_trainer.NNetTrainer):
-    def __init__(self, opts):
-        super(XVTrainer, self).__init__(opts)
-        self.trainset = dataset.SpeechTrainDataset(self.data_opts)
-        self.evalset = SpeechEvalDataset(self.data_opts)
-        train_collate_fn = self.trainset.collate_fn
-        logging.info("Using {} to extract features".format(self.data_opts['data_format']))
-        logging.info("Using {} feature".format(args['feat_type']))
+    def __init__(self, data_opts, model_opts, train_opts, args):
+        super(XVTrainer, self).__init__(data_opts, model_opts, train_opts, args)
 
-        n_spk = self.trainset.n_spk
-
-        model = tdnn.XVector(self.model_opts)
-        logging.info("Using TDNN neural network as frontend")
-
-        self.embedding_dim = self.model_opts[self.model_opts['arch']]['embedding_dim']
-        logging.info("Dimension of speaker embedding is {}".format(self.embedding_dim))
-
+    def build_model(self):
+        model_config = read_config("conf/model/{}.yaml".format(self.model_opts['arch']))
+        model_config['input_dim'] = self.input_dim
+        self.embedding_dim = model_config['embedding_dim']
+        self.model = tdnn.XVector(model_config)
+    
+    def build_criterion(self):
         if self.train_opts['loss'] == 'CrossEntropy':
-            self.criterion = loss.CrossEntropy(self.embedding_dim, n_spk).to(self.device)
+            self.criterion = loss.CrossEntropy(self.embedding_dim, self.n_spk).to(self.device)
         elif self.train_opts['loss'] == 'AMSoftmax':
-            self.criterion = loss.AMSoftmax(self.embedding_dim, n_spk, self.train_opts['scale'], self.train_opts['margin']).to(self.device)
-        elif self.train_opts['loss'] == 'LMCL_Uniform':
-            # margin_range = self.train_opts['margin']
-            # self.init_margin = margin_range[0]
-            # self.end_margin = margin_range[1]
-            self.criterion = AMSUniformLoss(self.embedding_dim, n_spk, self.train_opts['scale'], self.train_opts['margin']).to(self.device)
+            self.criterion = loss.AMSoftmax(self.embedding_dim, self.n_spk, self.train_opts['scale'], self.train_opts['margin']).to(self.device)
         else:
             raise NotImplementedError("Other loss function has not been implemented yet!")
         logging.info('Using {} loss function'.format(self.train_opts['loss']))
 
+    def build_dataloader(self):
+        train_collate_fn = self.trainset.collate_fn
+        self.trainloader = DataLoader(self.trainset, shuffle = True, collate_fn = train_collate_fn, batch_size = self.train_opts['bs'] * self.device_num, num_workers = 16, pin_memory = True)
+        self.eval_dataset = SpeechEvalDataset(self.data_opts)
+        self.evalloader = DataLoader(self.eval_dataset, batch_size = 1, shuffle = False, num_workers = 8, pin_memory = True)
+    
+    def build_optimizer(self):
         param_groups = [{'params': self.model.parameters()}, {'params': self.criterion.parameters()}]
-        
         if self.train_opts['type'] == 'sgd':
             optim_opts = self.train_opts['sgd']
             self.optim = optim.SGD(param_groups, optim_opts['init_lr'], momentum = optim_opts['momentum'], weight_decay = optim_opts['weight_decay'])
@@ -51,21 +53,9 @@ class XVTrainer(nnet_trainer.NNetTrainer):
             optim_opts = self.train_opts['adam']
             self.optim = optim.Adam(param_groups, optim_opts['init_lr'], weight_decay = optim_opts['weight_decay'])
         logging.info("Using {} optimizer".format(self.train_opts['type']))
-
-        self.epoch = self.train_opts['epoch']
-        logging.info("Total train {} epochs".format(self.epoch))
-
-        self.trainloader = DataLoader(self.trainset, shuffle = True, collate_fn = train_collate_fn, batch_size = self.train_opts['bs'] * device_num, num_workers = 32, pin_memory = True)
-        self.voxtestloader = DataLoader(self.voxtestset, batch_size = 1, shuffle = False, num_workers = 8, pin_memory = True)
         self.lr_scheduler = lr_scheduler.ReduceLROnPlateau(self.optim, mode = self.train_opts['lr_scheduler_mode'], 
                                                            factor = self.train_opts['lr_decay'], patience = self.train_opts['patience'], 
                                                            min_lr = self.train_opts['min_lr'], verbose = True)
-        self.current_epoch = 0
-
-        if os.path.exists(self.train_opts['resume']):
-            self.load(self.train_opts['resume'])
-
-        self._move_to_device()
 
     def train_epoch(self):
         self.model.train()
@@ -156,10 +146,15 @@ class XVTrainer(nnet_trainer.NNetTrainer):
     def extract_embedding(self):
         pass
 
+def main():
+    parser = ArgParser()
+    args = parser.parse_args()
+    args = vars(args)
+    data_config = read_config("conf/data.yaml")
+    model_config = read_config("conf/model.yaml")
+    train_config = read_config("conf/train.yaml")
+    trainer = XVTrainer(data_config, model_config, train_config, args)
+    trainer()
+
 if __name__ == "__main__":
-    import yaml
-    f = open('../../conf/nnet.yaml', 'r')
-    opts = yaml.load(f, Loader = yaml.CLoader)
-    f.close()
-    xvector_trainer = XVTrainer(opts)
-    xvector_trainer()
+    main()

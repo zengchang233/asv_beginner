@@ -36,31 +36,39 @@ scikit-learn
 ### components
 
 - [ ] linear transformation components (TDNN layer, FTDNN layer, conv layer ...)
+  - [x] tdnn
+  - [ ] ftdnn
+  - [x] conv
 - [ ] pooling components
   - [x] statistic pooling
   - [x] temporal average pooling
   - [ ] attentive statistic pooling
   - [ ] learnable dictionary pooling
 - [ ] loss components
+  - [x] cross entropy
+  - [ ] a-softmax
+  - [x] am-softmax(LMCL)
+  - [ ] aam-softmax
+  - [ ] triplet loss
 
 ### models
 
-- [ ] TDNN
-- [ ] E-TDNN
+- [x] TDNN
+- [x] E-TDNN
 - [ ] F-TDNN
 - [ ] ECAPA-TDNN
-- [ ] ResNet (18, 34)
+- [x] ResNet (18, 34)
 - [ ] RawNet
 - [ ] Wav2Spk
 
 ### trainer
 
-- [ ] trainer basic class
+- [x] trainer basic class
 
 ## TODO
 
 - [ ] Better log information output
-- [ ] better
+- [ ] ...
 
 ## Contributors
 

@@ -13,7 +13,7 @@ resume: none
 collate: length_varied
 loss: AMSoftmax # CrossEntropy, A-Softmax, LMCL(AM-Softmax), AAM-Softmax, Contrastive, Triplet
 scale: 20
-margin: [0.0,0.3]
+margin: 0.3
 lambda: 1
 sgd:
   init_lr: 0.1

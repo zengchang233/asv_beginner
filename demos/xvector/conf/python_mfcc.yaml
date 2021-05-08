@@ -1,7 +1,0 @@
-n_fft: 400
-num_bin: 80
-normalize: true
-delta: false
-num_cep: 40
-cmvn_window: 401
-norm_vars: false

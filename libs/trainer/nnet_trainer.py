@@ -13,11 +13,12 @@ from libs.utils.config_parser import ArgParser
 class NNetTrainer(object):
     def __init__(self, data_opts = None, model_opts = None, train_opts = None, args = None):
         # set configuration according to options parsed by argparse module
-        print(args)
+        # print(args)
         self.mode = args['mode']
         data_opts['feat_type'] = args['feat_type']
         model_opts['arch'] = args["arch"]
-        model_opts['input_dim'] = args['input_dim']
+        # model_opts['input_dim'] = args['input_dim']
+        self.input_dim = args['input_dim']
         train_opts['loss'] = args["loss"]
         train_opts['bs'] = args['bs']
         train_opts['device'] = args['device']
@@ -39,17 +40,11 @@ class NNetTrainer(object):
         self.trainset = dataset.SpeechTrainDataset(self.data_opts)
         logging.info("using {} to extract features".format(args['feat_type'].split('_')[0]))
         logging.info("Using {} feature".format(args['feat_type'].split('_')[-1]))
-        n_spk = self.trainset.n_spk
+        self.n_spk = self.trainset.n_spk
 
         self.epoch = self.train_opts['epoch']
         logging.info("Total train {} epochs".format(self.epoch))
         self.current_epoch = 0
-
-        # build dataloader
-        self.build_dataloader()
-        # train_collate_fn = self.trainset.collate_fn
-        # self.trainloader = DataLoader(self.trainset, shuffle = True, collate_fn = train_collate_fn, batch_size = self.train_opts['bs'] * device_num, num_workers = 32, pin_memory = True)
-        # self.voxtestloader = DataLoader(self.voxtestset, batch_size = 1, shuffle = False, num_workers = 8, pin_memory = True)
 
         # build model
         self.build_model()
@@ -71,6 +66,12 @@ class NNetTrainer(object):
 
         # mv to device
         self._move_to_device()
+        
+        # build dataloader
+        self.build_dataloader()
+        # train_collate_fn = self.trainset.collate_fn
+        # self.trainloader = DataLoader(self.trainset, shuffle = True, collate_fn = train_collate_fn, batch_size = self.train_opts['bs'] * device_num, num_workers = 32, pin_memory = True)
+        # self.voxtestloader = DataLoader(self.voxtestset, batch_size = 1, shuffle = False, num_workers = 8, pin_memory = True)
 
         # build loss
         self.build_criterion()
@@ -108,24 +109,19 @@ class NNetTrainer(object):
         #                                                    min_lr = self.train_opts['min_lr'], verbose = True)
 
     def build_model(self):
-        pass
-        # raise NotImplementedError("Please implement this function by yourself!")
+        raise NotImplementedError("Please implement this function by yourself!")
 
     def build_criterion(self):
-        pass
-        # raise NotImplementedError("Please implement this function by yourself!")
+        raise NotImplementedError("Please implement this function by yourself!")
 
     def build_optimizer(self): 
-        pass
-        # raise NotImplementedError("Please implement this function by yourself!")
+        raise NotImplementedError("Please implement this function by yourself!")
 
     def build_dataloader(self): 
-        pass
-        # raise NotImplementedError("Please implement this function by yourself!")
+        raise NotImplementedError("Please implement this function by yourself!")
     
     def train_epoch(self): 
-        pass
-        # raise NotImplementedError("Please implement this function by yourself!")
+        raise NotImplementedError("Please implement this function by yourself!")
 
     def _move_to_device(self):
         if self.train_opts['device'] == 'gpu':
@@ -143,10 +139,12 @@ class NNetTrainer(object):
                     device_ids = list(range(device_num))
             self.model = torch.nn.DataParallel(self.model.to(self.device), device_ids = device_ids)
             logging.info("Using GPU: {}".format(device_ids))
+            self.device_num = device_num
         else:
             self.device = torch.device('cpu')
             self.model = self.model.to(self.device)
             logging.info("Using CPU")
+            self.device_num = 1
 
     def model_average(self, avg_num = 4):
         model_state_dict = {}
@@ -187,7 +185,7 @@ class NNetTrainer(object):
         self.optim.load_state_dict(ckpt['optimizer'])
         self.current_epoch = ckpt['epoch']
 
-    def train(self, model, optimizer, criterion, train_loader):
+    def train(self):
         start_epoch = self.current_epoch
         self.best_dev_epoch = self.current_epoch
         self.best_dev_loss = 1000

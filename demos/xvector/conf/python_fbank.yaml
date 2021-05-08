@@ -1,6 +1,0 @@
-n_fft: 400
-num_bin: 80
-normalize: true
-delta: false
-cmvn_window: 400
-norm_vars: false
