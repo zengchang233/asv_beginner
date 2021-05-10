@@ -132,4 +132,5 @@ dmypy.json
 .vscode
 
 demos/xvector/exp/
-demos/xvector/job.sh
+demos/xvector/job.sh*
+demos/xvector/python3
