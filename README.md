@@ -49,9 +49,9 @@ scikit-learn
   - [ ] a-softmax
   - [x] am-softmax(LMCL)
   - [ ] aam-softmax
-  - [ ] triplet loss
+  - [x] triplet loss
 
-### models
+### models (front-end)
 
 - [x] TDNN
 - [x] E-TDNN
@@ -61,9 +61,43 @@ scikit-learn
 - [ ] RawNet
 - [ ] Wav2Spk
 
+### back-end
+
+- [ ] Attention Backend
+- [ ] PLDA
+- [ ] Neural PLDA
+
 ### trainer
 
 - [x] trainer basic class
+
+## Demos
+
+### VoxCeleb
+
+- X-Vector recipe
+  - [x] TDNN front-end
+  - [ ] PLDA back-end
+  - [ ] NPLDA back-end
+  - [ ] Attention back-end
+- ResNet recipe
+  - [x] ResNet front-end
+  - [ ] PLDA back-end
+  - [ ] NPLDA back-end
+  - [ ] Attention back-end
+
+### CN-Celeb
+
+- [ ] X-Vector recipe
+  - [ ] TDNN front-end
+  - [ ] PLDA back-end
+  - [ ] NPLDA back-end
+  - [ ] Attention back-end
+- [ ] ResNet recipe
+  - [ ] ResNet front-end
+  - [ ] PLDA back-end
+  - [ ] NPLDA back-end
+  - [ ] Attention back-end
 
 ## TODO
 
