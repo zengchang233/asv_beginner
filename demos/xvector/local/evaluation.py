@@ -38,6 +38,7 @@ class Evaluator(object):
         model_file_name = args['m']
         ckpt = torch.load('exp/{}/{}'.format(self.exp_dir, model_file_name), map_location = self.device)
         self.model.load_state_dict(ckpt['state_dict'])
+        self.model.to(self.device)
 
     def extract_embedding(self, feature): 
         feature = feature.to(self.device)
@@ -68,17 +69,19 @@ class Evaluator(object):
     def evaluate(self):
         self.model.eval()
         os.makedirs('exp/{}/test_xv'.format(self.exp_dir), exist_ok = True)
-        # with torch.no_grad():
-        #     for feature, utt in tqdm(self.evalloader):
-        #         utt = utt[0]
-        #         xv = self.extract_embedding(feature)
-        #         xv = xv.cpu().numpy()
-        #         test_spk_dir = os.path.join('exp/{}/test_xv'.format(self.exp_dir), os.path.dirname(utt))
-        #         os.makedirs(test_spk_dir, exist_ok = True)
-        #         np.save(os.path.join(test_spk_dir, os.path.basename(utt).replace('.wav', '.npy')), xv)
+        with torch.no_grad():
+           for feature, utt in tqdm(self.evalloader):
+               utt = utt[0]
+               feature = feature.to(self.device)
+               xv = self.extract_embedding(feature)
+               xv = xv.cpu().numpy()
+               test_spk_dir = os.path.join('exp/{}/test_xv'.format(self.exp_dir), os.path.dirname(utt))
+               os.makedirs(test_spk_dir, exist_ok = True)
+               np.save(os.path.join(test_spk_dir, os.path.basename(utt).replace('.wav', '.npy')), xv)
         y_true, y_pred = self.compute_cosine_score()
         eer, threshold = compute_eer(y_true, y_pred)
-        print("EER: {:.4%}".format(eer))
+        print("EER       : {:.4%}".format(eer))
+        print("Threshold : {:.4f}".format(threshold))
 
 def main(): 
     parser = argparse.ArgumentParser("options for evaluation of speaker verification")
