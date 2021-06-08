@@ -131,6 +131,7 @@ dmypy.json
 # vscode
 .vscode
 
-demos/xvector/exp/
-demos/xvector/job.sh*
-demos/xvector/python3
+demos/voxceleb/xvector/exp/
+demos/voxceleb/xvector/job.sh*
+demos/voxceleb/xvector/python3
+demos/voxceleb/xvector/nohup.out
