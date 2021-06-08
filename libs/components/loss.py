@@ -55,6 +55,34 @@ class AAMSoftmax(nn.Module):
     def forward(self, embeddings, labels):
         pass
 
+class OnlineTripletLoss(nn.Module):
+    def __init__(self, centers, margin, selector = 'hardest', cpu=False):
+        super(OnlineTripletLoss, self).__init__()
+        self.cpu = cpu
+        self.margin = margin
+        self.centers = F.normalize(centers)
+        self.centers.requires_grad = False
+        self.selector = selector
+
+    def forward(self, embeddings, labels):
+        if self.cpu:
+            embeddings = embeddings.cpu()
+        cos_matrix = F.linear(embeddings, self.centers)# cos_matrix batch_size * 1211
+        rows = torch.arange(embeddings.size(0))
+        positive_cos = cos_matrix[rows, labels].view(-1,1) # 32 * 1
+        idx = torch.ones((embeddings.size(0), self.centers.size(0)), dtype = rows.dtype) # 32 * 1211
+        idx[rows, labels] = 0
+        negative_cos_matrix = cos_matrix[idx > 0].view(embeddings.size(0), -1) # 32 * 1210
+        loss_values = negative_cos_matrix + self.margin - positive_cos # 求出所有的loss 32 * 1210
+        if self.selector == 'hardest': # 挑选出最大的loss
+            loss_value, _ = torch.max(loss_values, dim = 1)
+        if self.selector == 'hard':
+            pass
+        if self.selector == 'semihard':
+            pass
+        losses = F.relu(loss_value.view(-1,1))
+        return losses.mean(), (loss_value > 0).sum().item()
+
 class TripletLoss(nn.Module):
     def __init__(self):
         super(TripletLoss, self).__init__()
