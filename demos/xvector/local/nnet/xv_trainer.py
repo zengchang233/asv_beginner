@@ -40,9 +40,10 @@ class XVTrainer(nnet_trainer.NNetTrainer):
     
     def build_optimizer(self):
         super().build_optimizer()
-        self.lr_scheduler = lr_scheduler.ReduceLROnPlateau(self.optim, mode = self.train_opts['lr_scheduler_mode'], 
-                                                           factor = self.train_opts['lr_decay'], patience = self.train_opts['patience'], 
-                                                           min_lr = self.train_opts['min_lr'], verbose = True)
+        self.lr_scheduler = lr_scheduler.StepLR(self.optim, step_size = 20, gamma = 0.1)
+        #  self.lr_scheduler = lr_scheduler.ReduceLROnPlateau(self.optim, mode = self.train_opts['lr_scheduler_mode'],
+                                                           #  factor = self.train_opts['lr_decay'], patience = self.train_opts['patience'],
+        #                                                     min_lr = self.train_opts['min_lr'], verbose = True)
 
     def train_epoch(self):
         self.model.train()
@@ -88,9 +89,9 @@ class XVTrainer(nnet_trainer.NNetTrainer):
                         )
                     )
             if self.dev_check_count % self.train_opts['check_interval'] == 0:
-                # dev hyper-parameter adjust
+                #  # dev hyper-parameter adjust
                 dev_loss, dev_acc = self._dev()
-                self.lr_scheduler.step(dev_loss)
+                #  self.lr_scheduler.step(dev_loss)
                 self.criterion.train()
                 self.model.train()
                 logging.info("Epoch {} Dev loss {:.8f} Dev acc {:.4%} LR {:.8f}".format(self.current_epoch, dev_loss, dev_acc, self.optim.state_dict()['param_groups'][0]['lr']))
@@ -102,9 +103,10 @@ class XVTrainer(nnet_trainer.NNetTrainer):
                     self.save("best_dev_model.pth")
                 else:
                     self.count += 1
-                if self.count >= 8:
-                    logging.info("Trigger early stop strategy at epoch {}, stop training".format(self.current_epoch))
-                    return -1
+                #  if self.count >= 8:
+                    #  logging.info("Trigger early stop strategy at epoch {}, stop training".format(self.current_epoch))
+                #      return -1
+        self.lr_scheduler.step()
 
         self.save()
 
@@ -182,7 +184,7 @@ def main():
     model_config = read_config("conf/model.yaml")
     train_config = read_config("conf/train.yaml")
     trainer = XVTrainer(data_config, model_config, train_config, args)
-    # trainer()
+    trainer()
 
 
 if __name__ == "__main__":

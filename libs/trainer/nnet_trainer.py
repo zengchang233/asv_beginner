@@ -7,6 +7,7 @@ sys.path.insert(0, "../../")
 
 import torch
 from torch.utils.data import DataLoader
+import torch.optim as optim
 
 import libs.dataio.dataset as dataset
 from libs.utils.utils import read_config
@@ -52,13 +53,9 @@ class NNetTrainer(object):
         # build model
         self.build_model()
 
-        # resume model from saved path
-        if os.path.exists(self.train_opts['resume']):
-            self.load(self.train_opts['resume'])
-
         # mv to device
         self._move_to_device()
-        
+
         # build dataloader
         self.build_dataloader()
 
@@ -67,6 +64,10 @@ class NNetTrainer(object):
 
         # build optimizer
         self.build_optimizer()
+
+        # resume model from saved path
+        if os.path.exists(self.train_opts['resume']):
+            self.load(self.train_opts['resume'])
 
     def build_model(self):
         '''
@@ -180,7 +181,10 @@ class NNetTrainer(object):
 
     def load(self, resume):
         ckpt = torch.load(resume)
-        self.model.load_state_dict(ckpt['state_dict'])
+        if self.train_opts['device'] == 'gpu':
+            self.model.module.load_state_dict(ckpt['state_dict'])
+        else:
+            self.model.load_state_dict(ckpt['state_dict'])
         if 'criterion' in ckpt:
             self.criterion = ckpt['criterion']
         if 'lr_scheduler' in ckpt:

@@ -1,5 +1,5 @@
 n_fft: 400
-n_mels: 40
+n_mels: 80
 win_length: 400
 hop_length: 160
 normalize: true

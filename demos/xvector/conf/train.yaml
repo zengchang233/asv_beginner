@@ -1,7 +1,7 @@
 device: gpu # gpu, cpu
 gpus_id: [0,1,2,3]
 type: sgd
-bs: 32
+bs: 256
 lr_decay: 0.1
 lr_scheduler: reducep
 check_interval: 1000
