@@ -47,8 +47,8 @@ class SpeechEvalDataset(Dataset):
         utt = self.utts[idx]
         utt_path = os.path.join(self.root_path, utt)
         data, rate = self._load_audio(utt_path)
-        feat = self.feature_extractor(data)
-        return feat, utt
+        feat = self.feature_extractor([data])
+        return feat.squeeze(0), utt
     
 if __name__ == '__main__':
     from torch.utils.data import DataLoader

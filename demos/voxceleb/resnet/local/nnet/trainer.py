@@ -40,7 +40,7 @@ class ResNetTrainer(nnet_trainer.NNetTrainer):
     
     def build_optimizer(self):
         super().build_optimizer()
-        self.lr_scheduler = lr_scheduler.MultiStepLR(self.optim, milestones = [12, 18], gamma = 0.1)
+        self.lr_scheduler = lr_scheduler.MultiStepLR(self.optim, milestones = self.train_opts['milestones'], gamma = self.train_opts['lr_decay'])
 
     def train_epoch(self):
         self.model.train()
