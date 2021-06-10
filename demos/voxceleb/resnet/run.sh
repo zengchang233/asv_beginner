@@ -2,10 +2,10 @@
 
 alias python=`which python3`
 
-stage=0
+stage=1
 # train a frontend module
 if [ $stage -le 0 ]; then
-    python local/nnet/trainer.py --arch resnet --device gpu --bs 128 --feat-type python_spectrogram --input-dim 1 --resume exp/Tue_Jun__8_16_28_07_2021/net_2.pth
+    python local/nnet/trainer.py --arch resnet --device gpu --bs 128 --feat-type python_spectrogram --input-dim 1 # --resume exp/Wed_Jun__9_22_02_55_2021/net_12.pth
 fi
 
 echo "frontend training done!"
@@ -13,7 +13,7 @@ echo "frontend training done!"
 
 # evaluation on test set without backend (or using cosine backend)
 if [ $stage -le 1 ]; then
-    python local/evaluation.py -e Tue_Jun__8_16_28_07_2021 -m net_50.pth -d cuda -l far
+    python local/evaluation.py -e Thu_Jun_10_01_58_39_2021 -m net_21.pth -d cuda -l far
 fi
 
 echo "scoring with only frontend done!"

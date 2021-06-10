@@ -11,9 +11,10 @@ sys.path.insert(0, "../../")
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-import torchaudio as ta
-from torchaudio.transforms import *
-from torchaudio.compliance.kaldi import *
+import soundfile as sf
+#  import torchaudio as ta
+#  from torchaudio.transforms import *
+#  from torchaudio.compliance.kaldi import *
 
 from libs.utils.utils import read_config
 
@@ -33,6 +34,7 @@ class SpeechTrainDataset(Dataset):
         self.dataset = []
         current_sid = -1
         total_duration = 0
+        
         with open(TRAIN_MANIFEST, 'r') as f:
             reader = csv.reader(f)
             for sid, aid, filename, duration, samplerate in reader:
@@ -89,7 +91,7 @@ class SpeechTrainDataset(Dataset):
         frame = random.randint(self.lower_frame_num, self.higher_frame_num) # random select a frame number in uniform distribution
         duration = (frame - 1) * self.win_shift + self.win_len # duration in time of one training speech segment
         samples_num = int(duration * self.rate) # duration in sample point of one training speech segment
-        wave = []
+        feats = []
         for sid in batch:
             speaker = self.dataset[sid]
             y = []
@@ -100,21 +102,24 @@ class SpeechTrainDataset(Dataset):
                 t, sr = audio[1], audio[2]
                 samples_len = int(t * sr)
                 start = int(random.uniform(0, t) * sr) # random select start point of speech
-                _y, _ = self._load_audio(audio[0], offset = start, length = samples_len) # read speech data from start point to the end
+                _y, _ = self._load_audio(audio[0], start = start, stop = samples_len) # read speech data from start point to the end
                 if _y is not None:
                     y.append(_y)
                     n_samples += len(_y)
-            y = torch.cat(y, dim = 0)[:samples_num]
-            y = y.unsqueeze(0)
-            wave.append(y)
-        wave = torch.cat(wave, dim = 0)
+            y = np.hstack(y)[:samples_num]
+            feature = self.feature_extractor(y)
+            feats.append(feature)
+
         labels = torch.tensor(batch)
-        feats = self.feature_extractor(wave)
+        feats = np.array(feats)
+        feats = torch.from_numpy(feats)
+
         return feats, labels
 
-    def _load_audio(self, path, offset = 0, length = -1):
-        y, sr = ta.load(path, frame_offset = offset, num_frames = length)
-        return y[0], sr
+    def _load_audio(self, path, start = 0, stop = None, resample = True):
+        y, sr = sf.read(path, start = start, stop = stop, dtype = 'float32', always_2d = True)
+        y = y[:, 0]
+        return y, sr
 
     def get_dev_data(self):
         idx = 0
@@ -122,7 +127,7 @@ class SpeechTrainDataset(Dataset):
             (wav_path, duration, rate), spk = self.dev[idx]
             data, _ = self._load_audio(wav_path)
             feat = self.feature_extractor(data)
-            yield feat.unsqueeze(0), torch.LongTensor([spk])
+            yield torch.from_numpy(feat).unsqueeze(0), torch.LongTensor([spk])
             idx += 1
 
     def __call__(self):

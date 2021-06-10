@@ -1,9 +1,9 @@
 frames: [250,400]
 test_manifest: ./task.txt # path to test set manifest
 test_root: /groups1/gcc50479/spk/data/voxceleb1/test/wav
-train_manifest: /groups1/gcc50479/spk/data/manifest/voxceleb1_manifest.csv # path to training set manifest
+train_manifest: /home/smg/zengchang/data/manifest/voxceleb1_manifest.csv # path to training set manifest
 win_len: 0.025
 win_shift: 0.01
 rate: 16000
-feat_type: python_fbank # kaldi or python
+feat_type: python_spectrogram # kaldi or python
 dev_number: 1000

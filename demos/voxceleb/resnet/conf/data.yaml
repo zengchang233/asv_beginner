@@ -1,4 +1,4 @@
-frames: [250,400]
+frames: [200,400]
 test_manifest: ./task.txt # path to test set manifest
 test_root: /home/smg/zengchang/data/voxceleb1/test/wav
 train_manifest: /home/smg/zengchang/data/manifest/voxceleb1_manifest.csv # path to training set manifest

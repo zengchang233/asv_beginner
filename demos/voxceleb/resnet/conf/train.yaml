@@ -8,15 +8,15 @@ check_interval: 1000
 lr_scheduler_mode: min
 min_lr: 0.000001 
 patience: 5
-epoch: 50
+epoch: 21
 resume: none
 collate: length_varied
 loss: AMSoftmax # CrossEntropy, A-Softmax, LMCL(AM-Softmax), AAM-Softmax, Contrastive, Triplet
 scale: 25
-margin: 0.3
+margin: 0.25
 lambda: 1
 sgd:
-  init_lr: 0.1
+  init_lr: 0.3
   weight_decay: 0.00001
   momentum: 0.9
 adam:

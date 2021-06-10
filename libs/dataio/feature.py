@@ -7,6 +7,32 @@ from torchaudio.functional import *
 from torchaudio.transforms import ComputeDeltas, SlidingWindowCmn, Spectrogram, MelSpectrogram, MFCC
 from torchaudio.compliance.kaldi import *
 
+from librosa import stft, magphase
+from numpy import log1p
+
+def normalize(feat):
+    return (feat - feat.mean(axis = 1, keepdims = True)) / (feat.std(axis = 1, keepdims = True) + 2e-12)
+
+def librosa_stft(data, n_fft, hop_length, win_length):
+    feat = stft(data, n_fft = n_fft, hop_length = hop_length, win_length = win_length)
+    feat, _ = magphase(feat)
+    feat = log1p(feat)
+    feat = normalize(feat)
+    return feat
+
+class CustomizedSpec(nn.Module):
+    def __init__(self, n_fft, hop_length, win_length, power = 1):
+        super(CustomizedSpec, self).__init__()
+        self.feat = Spectrogram(n_fft = n_fft,
+                           hop_length = hop_length,
+                           win_length = win_length,
+                           power = power)
+
+    def forward(self, wave):
+        feature = self.feat(wave)
+        feature = torch.log1p(feature)
+        return feature
+
 class FeatureExtractor(nn.Module):
     def __init__(self, rate, feat_type, opts):
         '''
@@ -18,23 +44,29 @@ class FeatureExtractor(nn.Module):
         super(FeatureExtractor, self).__init__()
         transform = []
         if feat_type == 'spectrogram': # torchaudio spectrogram
-            feat = Spectrogram(n_fft = opts['n_fft'],
-                               hop_length = opts['hop_length'],
-                               win_length = opts['win_length'])
+            #  feat = CustomizedSpec(n_fft = opts['n_fft'],
+                               #  hop_length = opts['hop_length'],
+                               #  win_length = opts['win_length'],
+                               #  power = 1)
+            #  transform.append(feat)
+            self.feat = partial(librosa_stft, n_fft = opts['n_fft'],
+                                hop_length = opts['hop_length'],
+                                win_length = opts['win_length'])
         elif feat_type == 'fbank': # torchaudio fbank
             feat = MelSpectrogram(sample_rate = rate,
                                   n_fft = opts['n_fft'],
                                   n_mels = opts['n_mels'],
                                   hop_length = opts['hop_length'],
                                   win_length = opts['win_length'])
+            transform.append(feat)
         elif feat_type == 'mfcc': # transforms.MFCC() torchaudio mfcc
             feat = MFCC(sample_rate = rate,
                         n_mfcc = opts['num_cep'],
                         log_mels = opts['log_mels'], 
                         melkwargs = opts['fbank'])
+            transform.append(feat)
         else:
             raise NotImplementedError("Other features are not implemented!")
-        transform.append(feat)
         if opts['normalize']:
             cmvn = SlidingWindowCmn(opts['cmvn_window'], norm_vars = False)
             transform.append(cmvn)
@@ -50,7 +82,9 @@ class FeatureExtractor(nn.Module):
         Returns:
             feature: specified feature, shape is (B, C, T)
         '''
-        feature = self.transform(wave)
+        #  feature = self.transform(wave)
+        feature = self.feat(wave)
+        #  feature = self.transform(feature)
         return feature
 
 class KaldiFeatureExtractor(nn.Module): 
@@ -94,12 +128,14 @@ class KaldiFeatureExtractor(nn.Module):
         return feature.transpose(2,1).contiguous()
 
 if __name__ == "__main__":
+    import numpy as np
     import yaml
-    f = open("../../conf/data/kaldi_mfcc.yaml")
+    f = open("../../conf/data/python_spectrogram.yaml")
     config = yaml.load(f, Loader = yaml.CLoader)
     f.close()
-    feature_extractor = KaldiFeatureExtractor(16000, 'mfcc', config)
-    a = torch.randn(4, 45000)
-    a = a / a.abs().max()
-    feature = feature_extractor(a)
+    feature_extractor = FeatureExtractor(16000, 'spectrogram', config)
+    a = torch.randn(1, 45000)
+    a = a / np.abs(a).max()
+    #  a = a / a.abs().max()
+    feature = feature_extractor(a.reshape(-1))
     print(feature.shape)

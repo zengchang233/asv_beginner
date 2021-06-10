@@ -4,7 +4,7 @@ sys.path.insert(0, '../../../')
 
 import torch
 from torch.utils.data import Dataset
-import torchaudio as ta
+import soundfile as sf
 
 from libs.utils.utils import read_config
 
@@ -17,8 +17,6 @@ class SpeechEvalDataset(Dataset):
         self.root_path = opts['test_root']
         path = opts['test_manifest']
         feat_type = opts['feat_type']
-        win_length = opts['win_len']
-        hop_length = opts['win_shift']
         rate = opts['rate']
         self.utts = []
         with open(path, 'r') as f:
@@ -37,9 +35,10 @@ class SpeechEvalDataset(Dataset):
             feature_opts = read_config("../conf/data/{}.yaml".format(feat_type)) # for test
         self.feature_extractor = FeatureExtractor(rate, feat_type.split("_")[-1], feature_opts)
 
-    def _load_audio(self, path, offset = 0, length = -1):
-        y, sr = ta.load(path, frame_offset = offset, num_frames = length)
-        return y[0], sr
+    def _load_audio(self, path, start = 0, stop = None, resample = True):
+        y, sr = sf.read(path, start = start, stop = stop, dtype = 'float32', always_2d = True)
+        y = y[:, 0]
+        return y, sr
 
     def __len__(self):
         return len(self.utts)
@@ -53,7 +52,7 @@ class SpeechEvalDataset(Dataset):
     
 if __name__ == '__main__':
     from torch.utils.data import DataLoader
-    opts = read_config("../conf/data.yaml")
+    opts = read_config("conf/data.yaml")
     test_dataset = SpeechEvalDataset(opts)
     feature, uttid = test_dataset[0]
     print(feature.shape)

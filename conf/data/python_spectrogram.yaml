@@ -1,5 +1,5 @@
-n_fft: 400
-win_length: 400 
+n_fft: 512
+win_length: 512
 hop_length: 160
 normalize: true
 delta: false
