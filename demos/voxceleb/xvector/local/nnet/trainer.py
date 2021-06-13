@@ -2,7 +2,7 @@ import os
 import logging
 logging.basicConfig(level = logging.INFO, filename = 'train.log', filemode = 'w', format = "%(asctime)s [%(filename)s:%(lineno)d - %(levelname)s ] %(message)s")
 import sys
-sys.path.insert(0, "../../")
+sys.path.insert(0, "../../../")
 import math
 
 import numpy as np
@@ -31,6 +31,7 @@ class XVTrainer(nnet_trainer.NNetTrainer):
         model_config['input_dim'] = self.input_dim
         self.embedding_dim = model_config['embedding_dim']
         self.model = tdnn.XVector(model_config)
+        self._reset_opts('model', model_config)
     
     def build_criterion(self):
         super().build_criterion()
@@ -40,7 +41,8 @@ class XVTrainer(nnet_trainer.NNetTrainer):
     
     def build_optimizer(self):
         super().build_optimizer()
-        self.lr_scheduler = lr_scheduler.StepLR(self.optim, step_size = 20, gamma = 0.1)
+        self.lr_scheduler = lr_scheduler.MultiStepLR(self.optim, milestones = self.train_opts['milestones'], gamma = self.train_opts['lr_decay'])
+        #  self.lr_scheduler = lr_scheduler.StepLR(self.optim, step_size = 20, gamma = 0.1)
         #  self.lr_scheduler = lr_scheduler.ReduceLROnPlateau(self.optim, mode = self.train_opts['lr_scheduler_mode'],
                                                            #  factor = self.train_opts['lr_decay'], patience = self.train_opts['patience'],
         #                                                     min_lr = self.train_opts['min_lr'], verbose = True)
@@ -138,44 +140,6 @@ class XVTrainer(nnet_trainer.NNetTrainer):
             xv = F.normalize(xv)
         return xv
 
-    def compute_cosine_score(self): 
-        y_true = []
-        y_pred = []
-        with open('./task.txt', 'r') as f:
-            for line in f:
-                line = line.rstrip()
-                true_score, test_utt1, test_utt2 = line.split(' ')
-                y_true.append(eval(true_score))
-                utt1_feat = np.load(os.path.join('exp/{}/test_xv'.format(self.log_time), test_utt1.replace('.wav', '.npy')))
-                utt2_feat = np.load(os.path.join('exp/{}/test_xv'.format(self.log_time), test_utt2.replace('.wav', '.npy')))
-                score = cosine_similarity(utt1_feat.reshape(1, -1), utt2_feat.reshape(1, -1)).reshape(-1)
-                y_pred.append(score)
-        return y_true, y_pred
-
-    def test(self):
-        if os.path.exists('exp/{}/best_dev_model.pth'.format(self.log_time)):
-            self.load('exp/{}/best_dev_model.pth'.format(self.log_time))
-        self.model.eval()
-        os.makedirs('exp/{}/test_xv'.format(self.log_time), exist_ok = True)
-        with torch.no_grad():
-            for feature, utt in self.evalloader:
-                utt = utt[0]
-                xv = self.extract_embedding(feature)
-                # feature = feature.to(self.device)
-                # if self.train_opts['loss'] == 'CrossEntropy':
-                #     _, xv = self.model.extract_embedding(feature) # cross entropy loss use 1st fc layer output as speaker embedding
-                # # elif self.train_opts['loss'] == 'LMCL' or self.train_opts['loss'] == 'LMCL_Uniform':
-                # else:
-                #     xv, _ = self.model.extract_embedding(feature) # lmcl use 2nd fc layer output as speaker embedding
-                #     xv = F.normalize(xv)
-                xv = xv.cpu().numpy()
-                test_spk_dir = os.path.join('exp/{}/test_xv'.format(self.log_time), os.path.dirname(utt))
-                os.makedirs(test_spk_dir, exist_ok = True)
-                np.save(os.path.join(test_spk_dir, os.path.basename(utt).replace('.wav', '.npy')), xv)
-        y_true, y_pred = self.compute_cosine_score()
-        eer, threshold = compute_eer(y_true, y_pred)
-        print("EER: {:.4%}".format(eer))
-
 def main():
     parser = ArgParser()
     args = parser.parse_args()
@@ -185,7 +149,6 @@ def main():
     train_config = read_config("conf/train.yaml")
     trainer = XVTrainer(data_config, model_config, train_config, args)
     trainer()
-
 
 if __name__ == "__main__":
     main()

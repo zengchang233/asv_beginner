@@ -135,3 +135,4 @@ demos/voxceleb/*/exp/
 demos/voxceleb/*/job.sh*
 demos/voxceleb/*/python3
 demos/voxceleb/*/nohup.out
+demos/voxceleb/*/*.out

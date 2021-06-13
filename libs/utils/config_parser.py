@@ -3,9 +3,6 @@ import argparse
 class ArgParser(object):
     def __init__(self):
         parser = argparse.ArgumentParser(description = "specify some important arguments")
-        # parser.add_argument("--data-opts", type = str, default = "data", dest = "data_opts", help = "data config file")
-        # parser.add_argument("--model-opts", type = str, default = "model", dest = "model_opts", help = "model config file")
-        # parser.add_argument("--train-opts", type = str, default = "train", dest = "train_opts", help = "train config file")
         parser.add_argument("--feat-type", type = str, default = 'python_mfcc', dest = "feat_type", help = 'input feature')
         parser.add_argument("--input-dim", type = int, default = 30, dest = "input_dim", help = "dimension of input feature")
         parser.add_argument("--arch", type = str, default = "tdnn", choices = ["resnet", "tdnn", "etdnn", "ftdnn", "rawnet", "wav2spk"], help = "specify model architecture")

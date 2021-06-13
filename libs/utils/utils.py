@@ -6,3 +6,5 @@ def read_config(file_path):
     f.close()
     return config
 
+def save_config():
+    pass

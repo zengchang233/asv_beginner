@@ -19,8 +19,10 @@ class TAP(nn.Module):
         return mean
 
 class GAP(nn.Module):
-    def __init__(self):
+    def __init__(self, output_size):
         super(GAP, self).__init__()
+        assert (type(output_size) == int or len(output_size) >= 1), 'output_size must be int or list (tuple) type'
+        self.global_average_pooling = nn.AdaptiveAvgPool2d(output_size)
 
     def forward(self, feature_map):
         '''
@@ -29,7 +31,8 @@ class GAP(nn.Module):
         returns:
             embedding: (B x C)
         '''
-        pass
+        feature_map = self.global_average_pooling(feature_map)
+        return feature_map
 
 class STAT(nn.Module):
     """
@@ -51,8 +54,10 @@ class STAT(nn.Module):
         return torch.cat([mean, std], dim=1)
 
 class MultiHeadSAP(nn.Module):
-    def __init__(self):
+    def __init__(self, input_dim, hidden_dim):
         super(MultiHeadSAP, self).__init__()
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
 
     def forward(self, feature_map):
         '''
@@ -64,15 +69,24 @@ class MultiHeadSAP(nn.Module):
         pass
 
 class LDE(nn.Module):
-    def __init__(self):
+    def __init__(self, input_dim):
         super(LDE, self).__init__()
 
     def forward(self, feature_map):
         pass
 
 class MultiHeadFFA(nn.Module):
-    def __init__(self):
+    def __init__(self, input_dim, hidden_dim):
         super(MultiHeadFFA, self).__init__()
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
+
 
     def forward(self, feature_map):
+        '''
+        params:
+            feature_map: (B x C x T)
+        returns:
+            embeddings: (B x C)
+        '''
         pass

@@ -130,6 +130,6 @@ if __name__ == '__main__':
     #  create_manifest_voxceleb1()
     with Pool(40) as p:
         p.map(create_manifest_voxceleb1, speakers_path_list)
-    save_manifest("voxceleb1", log)
+    save_manifest("voxceleb1_augment", log)
     #  create_manifest_voxceleb2()
     #  merge_manifest(['aug_voxceleb2_dev', 'aug_voxceleb2_test'], 'aug_voxceleb2')

@@ -31,6 +31,7 @@ class ResNetTrainer(nnet_trainer.NNetTrainer):
         model_config['input_dim'] = self.input_dim
         self.embedding_dim = model_config['embedding_dim']
         self.model = residual_network.SpeakerEmbNet(model_config)
+        self._reset_opts('model', model_config)
     
     def build_criterion(self):
         super().build_criterion()

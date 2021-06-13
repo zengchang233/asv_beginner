@@ -34,15 +34,18 @@ class SpeechTrainDataset(Dataset):
         self.dataset = []
         current_sid = -1
         total_duration = 0
+
+        count = 0
         
         with open(TRAIN_MANIFEST, 'r') as f:
             reader = csv.reader(f)
-            for sid, aid, filename, duration, samplerate in reader:
+            for sid, _, filename, duration, samplerate in reader:
                 if sid != current_sid:
                     self.dataset.append([])
                     current_sid = sid
                 self.dataset[-1].append((filename, float(duration), int(samplerate)))
                 total_duration += eval(duration)
+                count += 1
         self.n_spk = len(self.dataset)
 
         # split dev dataset
@@ -52,6 +55,8 @@ class SpeechTrainDataset(Dataset):
         total_duration -= self.dev_total_duration
         mean_duration_per_utt = (np.mean(frame_range) - 1) * self.win_shift + self.win_len
         self.count = math.floor(total_duration / mean_duration_per_utt) # make sure each sampling point in data will be used
+        #  self.count = self.count - opts['dev_number']
+        #  print(self.count)
 
         # set feature extractor according to feature type
         if 'kaldi' in feat_type:
@@ -91,7 +96,8 @@ class SpeechTrainDataset(Dataset):
         frame = random.randint(self.lower_frame_num, self.higher_frame_num) # random select a frame number in uniform distribution
         duration = (frame - 1) * self.win_shift + self.win_len # duration in time of one training speech segment
         samples_num = int(duration * self.rate) # duration in sample point of one training speech segment
-        feats = []
+        #  feats = []
+        wave = []
         for sid in batch:
             speaker = self.dataset[sid]
             y = []
@@ -101,20 +107,20 @@ class SpeechTrainDataset(Dataset):
                 audio = speaker[aid]
                 t, sr = audio[1], audio[2]
                 samples_len = int(t * sr)
-                start = int(random.uniform(0, t) * sr) # random select start point of speech
+                if n_samples == 0:
+                    start = int(random.uniform(0, t - 1.0) * sr)
+                else:
+                    start = 0
+                #  start = int(random.uniform(0, t) * sr) # random select start point of speech
                 _y, _ = self._load_audio(audio[0], start = start, stop = samples_len) # read speech data from start point to the end
                 if _y is not None:
                     y.append(_y)
                     n_samples += len(_y)
             y = np.hstack(y)[:samples_num]
-            feature = self.feature_extractor(y)
-            feats.append(feature)
-
+            wave.append(y)
+        feature = self.feature_extractor(wave)
         labels = torch.tensor(batch)
-        feats = np.array(feats)
-        feats = torch.from_numpy(feats)
-
-        return feats, labels
+        return feature, labels
 
     def _load_audio(self, path, start = 0, stop = None, resample = True):
         y, sr = sf.read(path, start = start, stop = stop, dtype = 'float32', always_2d = True)
@@ -126,8 +132,8 @@ class SpeechTrainDataset(Dataset):
         while idx < self.dev_number:
             (wav_path, duration, rate), spk = self.dev[idx]
             data, _ = self._load_audio(wav_path)
-            feat = self.feature_extractor(data)
-            yield torch.from_numpy(feat).unsqueeze(0), torch.LongTensor([spk])
+            feat = self.feature_extractor([data])
+            yield feat, torch.LongTensor([spk])
             idx += 1
 
     def __call__(self):

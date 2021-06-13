@@ -27,7 +27,8 @@ class Evaluator(object):
         self.location = args['l']
 
     def build_model(self, model_opts):
-        model_config = read_config("conf/model/{}.yaml".format(model_opts['arch']))
+        #  model_config = read_config("conf/model/{}.yaml".format(model_opts['arch']))
+        model_config = model_opts
         model_config['input_dim'] = self.input_dim
         self.embedding_dim = model_config['embedding_dim']
         self.model = tdnn.XVector(model_config)
@@ -91,8 +92,8 @@ def main():
     parser.add_argument("-l", "--location", dest = 'l', type = str, choices = ['near', 'far'], help = "which to extract embedding")
     args = parser.parse_args()
     args = vars(args)
-    data_config = read_config("conf/data.yaml")
-    model_config = read_config("conf/model.yaml")
+    data_config = read_config("exp/{}/conf/data.yaml".format(args['e']))
+    model_config = read_config("exp/{}/conf/model.yaml".format(args['e']))
     evaluator = Evaluator(data_config, model_config, args)
     evaluator.evaluate()
 

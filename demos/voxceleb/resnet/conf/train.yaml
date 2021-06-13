@@ -8,7 +8,7 @@ check_interval: 1000
 lr_scheduler_mode: min
 min_lr: 0.000001 
 patience: 5
-epoch: 50
+epoch: 40
 milestones: [20,35]
 resume: none
 collate: length_varied

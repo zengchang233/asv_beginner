@@ -206,14 +206,28 @@ class NNetTrainer(object):
             if stop == -1:
                 break 
 
+    def _reset_opts(self, module, opts):
+        if module == 'data':
+            for k, v in opts.items():
+                self.data_opts[k] = v
+        elif module == 'model':
+            for k, v in opts.items():
+                self.model_opts[k] = v
+        elif module == 'train':
+            for k, v in opts.items():
+                self.train_opts[k] = v
+
     def __call__(self):
-        os.makedirs('exp/{}'.format(self.log_time), exist_ok = True)
-        if not os.path.exists("exp/{}/config.yaml".format(self.log_time)):
-            with open("exp/{}/config.yaml".format(self.log_time), 'w') as f:
+        os.makedirs('exp/{}/conf'.format(self.log_time), exist_ok = True)
+        if not os.path.exists("exp/{}/conf/data.yaml".format(self.log_time)):
+            with open("exp/{}/conf/data.yaml".format(self.log_time), 'w') as f:
                 yaml.dump(self.data_opts, f)
+        if not os.path.exists("exp/{}/conf/model.yaml".format(self.log_time)):
+            with open("exp/{}/conf/model.yaml".format(self.log_time), 'w') as f:
                 yaml.dump(self.model_opts, f)
+        if not os.path.exists("exp/{}/conf/train.yaml".format(self.log_time)):
+            with open("exp/{}/conf/train.yaml".format(self.log_time), 'w') as f:
                 yaml.dump(self.train_opts, f)
-        # train, test 
         logging.info("start training")
         self.train()
 

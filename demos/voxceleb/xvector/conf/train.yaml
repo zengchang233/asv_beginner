@@ -3,8 +3,9 @@ gpus_id: [0,1,2,3]
 type: sgd
 bs: 256
 lr_decay: 0.1
-lr_scheduler: reducep
-check_interval: 1000
+lr_scheduler: milestones
+milestones: [20,35]
+check_interval: 10
 lr_scheduler_mode: min
 min_lr: 0.000001 
 patience: 5
@@ -16,9 +17,9 @@ scale: 20
 margin: 0.3
 lambda: 1
 sgd:
-  init_lr: 0.1
+  init_lr: 0.01
   weight_decay: 0.00001
-  momentum: 0.9
+  momentum: 0.5
 adam:
   init_lr: 0.01
   weight_decay: 0.00001
