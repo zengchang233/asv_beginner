@@ -131,8 +131,10 @@ dmypy.json
 # vscode
 .vscode
 
-demos/voxceleb/*/exp/
-demos/voxceleb/*/job.sh*
-demos/voxceleb/*/python3
-demos/voxceleb/*/nohup.out
-demos/voxceleb/*/*.out
+demos/*/*/exp/
+demos/*/*/job.sh*
+demos/*/*/python3
+demos/*/*/nohup.out
+demos/*/*/*.out
+demos/*/resnet18/*
+demos/*/orthogonal_resnet/*
