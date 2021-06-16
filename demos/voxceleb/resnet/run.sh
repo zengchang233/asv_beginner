@@ -2,14 +2,21 @@
 
 alias python=`which python3`
 
-stage=1
+stage=0
 # train a frontend module
 if [ $stage -le 0 ]; then
     python local/nnet/trainer.py --arch resnet --device cuda --bs 64 --feat-type python_spectrogram --input-dim 1 # --resume exp/Sun_Jun_13_12_36_33_2021/net_29.pth
 fi
 
+##### Result #####
+# model config: [64,128,256], [1,1,1]
+# feature: 161 dims stft
+# loss: AMSoftmax (s=20,m=0.3)
+# voxceleb1 dev as training set, voxceleb1 test as test set
+    # no augmentation: EER: 4.35%
+    # augmentation with MUSAN and RIRS: EER: 3.82% (xvector in kaldi EER is 5.302% as reference)
 echo "frontend training done!"
-# exit 0;
+exit 0;
 
 # evaluation on test set without backend (or using cosine backend)
 if [ $stage -le 1 ]; then
