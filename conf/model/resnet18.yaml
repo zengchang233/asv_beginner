@@ -5,3 +5,6 @@ residual_block_layers: [2,2,2,2]
 fc_layers: 1
 embedding_dim: 512
 pooling: GAP
+groups: 1
+width_per_group: 64
+zero_init_residual: false

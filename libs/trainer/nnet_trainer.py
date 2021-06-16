@@ -21,7 +21,6 @@ class NNetTrainer(object):
         self.mode = args['mode']
         data_opts['feat_type'] = args['feat_type']
         model_opts['arch'] = args["arch"]
-        # model_opts['input_dim'] = args['input_dim']
         self.input_dim = args['input_dim']
         train_opts['loss'] = args["loss"]
         train_opts['bs'] = args['bs']
@@ -128,7 +127,7 @@ class NNetTrainer(object):
         raise NotImplementedError("Please implement this function by yourself!")
 
     def _move_to_device(self):
-        if self.train_opts['device'] == 'gpu':
+        if self.train_opts['device'] == 'cuda':
             self.device = torch.device('cuda')
             if self.mode == 'test':
                 device_ids = [0]
@@ -181,7 +180,7 @@ class NNetTrainer(object):
 
     def load(self, resume):
         ckpt = torch.load(resume)
-        if self.train_opts['device'] == 'gpu':
+        if self.train_opts['device'] == 'cuda':
             self.model.module.load_state_dict(ckpt['state_dict'])
         else:
             self.model.load_state_dict(ckpt['state_dict'])

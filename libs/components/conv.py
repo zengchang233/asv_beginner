@@ -24,31 +24,28 @@ class TDNNLayer(nn.Module):
         self.bn = nn.BatchNorm1d(output_channel)
         #  self.activation = nn.LeakyReLU(negative_slope = 0.2)
         self.activation = nn.ReLU()
-        self.bn_first = bn_first
+        #  self.bn_first = bn_first
 
     def forward(self, x):
         x = self.context_layer(x)
-        if self.bn_first:
-            x = self.bn(x)
-            x = self.activation(x)
-        else:
-            x = self.activation(x)
-            x = self.bn(x)
+        #  if self.bn_first:
+            #  x = self.bn(x)
+            #  x = self.activation(x)
+        #  else:
+        x = self.activation(x)
+        x = self.bn(x)
         return x
 
-class Conv3x3(nn.Module):
-    def __init__(self):
-        super(Conv3x3, self).__init__()
+class Conv3x3(nn.Conv2d):
+    def __init__(self, in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1):
+        super(Conv3x3, self).__init__(in_planes, out_planes, kernel_size = 3,
+                                      stride = stride, padding = dilation, groups = groups,
+                                      bias = False, dilation = dilation)
 
-    def forward(self):
-        pass
-
-class Conv1x1(nn.Module):
-    def __init__(self):
-        super(Conv1x1, self).__init__()
-
-    def forward(self):
-        pass
+class Conv1x1(nn.Conv2d):
+    def __init__(self, in_planes: int, out_planes: int, stride: int = 1):
+        super(Conv1x1, self).__init__(in_planes, out_planes, kernel_size = 1,
+                                      stride = stride, bias = False)
 
 class FTDNNLayer(nn.Module):
     def __init__(self):
@@ -56,8 +53,6 @@ class FTDNNLayer(nn.Module):
 
     def forward(self):
         pass
-
-
 
 def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1) -> nn.Conv2d:
     """3x3 convolution with padding"""

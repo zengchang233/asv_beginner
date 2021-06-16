@@ -2,7 +2,7 @@
 
 alias python=`which python3`
 
-stage=1
+stage=0
 # train a frontend module
 if [ $stage -le 0 ]; then
     # options:
@@ -14,12 +14,12 @@ if [ $stage -le 0 ]; then
     # --resume resume path
     # --device gpu or cpu
     # --mode depreciated
-    python local/nnet/trainer.py --device gpu --arch tdnn --bs 64 --feat-type kaldi_mfcc --input-dim 23 \
+    python local/nnet/trainer.py --device cuda --arch tdnn --bs 64 --feat-type kaldi_mfcc --input-dim 23 \
         --loss AMSoftmax # --resume exp/Tue_Jun__8_03_00_40_2021/net_7.pth
 fi
 
 echo "frontend training done!"
-# exit 0;
+exit 0;
 
 # evaluation on test set without backend (or using cosine backend)
 if [ $stage -le 1 ]; then

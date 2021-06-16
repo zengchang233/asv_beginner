@@ -77,16 +77,12 @@ class XVector(nn.Module):
         return x
 
         
-if __name__ == "__main__":
+if __name__ == '__main__':
     import yaml
-    f = open("../../conf/nnet.yaml")
-    config = yaml.load(f, Loader = yaml.CLoader)
+    from yaml import CLoader
+    from torchsummary import summary
+    f = open('../../conf/model/tdnn.yaml', 'r')
+    opts = yaml.load(f, Loader = CLoader)
     f.close()
-    model_opts = config['model']
-    arch = model_opts['arch']
-    xv_opts = model_opts[arch]
-    tdnn = XVector(xv_opts)
-    print(tdnn)
-    inputs = torch.randn(4, 40, 300)
-    outputs = tdnn(inputs)
-    print(outputs.shape)
+    net = XVector(opts)
+    summary(net.cuda(), (30, 300))

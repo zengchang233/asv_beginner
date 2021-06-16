@@ -10,7 +10,7 @@ class ArgParser(object):
         parser.add_argument("--bs", type = int, default = 64, help = "specify batch size for training")
         # parser.add_argument("--collate", type = str, default = "length_varied", choices = ["kaldi", "length_varied"], help = "specify collate function in DataLoader")
         parser.add_argument("--resume", type = str, default = 'none', help = "if you give a ckpt path to this argument and if the ckpt file exists, it will resume training based on this ckpt file. Otherwise, it will start a new training process")
-        parser.add_argument("--device", default = 'gpu', choices = ['gpu', 'cpu'], help = 'designate the device on which the model will run')
+        parser.add_argument("--device", default = 'gpu', choices = ['cuda', 'cpu'], help = 'designate the device on which the model will run')
         parser.add_argument("--mode", default = 'train', choices = ['train', 'test'], help = 'train or test mode')
         self.parser = parser
 

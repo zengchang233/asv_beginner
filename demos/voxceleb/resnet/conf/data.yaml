@@ -6,4 +6,4 @@ win_len: 0.02
 win_shift: 0.01
 rate: 16000
 feat_type: python_spectrogram # kaldi or python
-dev_number: 10
+dev_number: 1000

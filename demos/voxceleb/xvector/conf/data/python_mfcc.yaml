@@ -1,11 +1,7 @@
-num_cep: 30
-log_mels: true
-fbank:
-  n_fft: 400
-  n_mels: 30
-  win_length: 400
-  hop_length: 160
+num_cep: 23
+n_fft: 400
+n_mels: 40
+win_length: 400
+hop_length: 160
 normalize: true
 delta: false
-cmvn_window: 400
-norm_vars: false

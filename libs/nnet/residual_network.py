@@ -1,19 +1,14 @@
+import sys
+sys.path.insert(0, '../../')
+
 from torch import nn
 from torch.autograd import Variable
 import torch.nn.functional as F
 import torch
 import math
 
-class ReLU20(nn.Hardtanh): # relu
-    def __init__(self, inplace=False):
-        super(ReLU20, self).__init__(0, 20, inplace)
-
-    def extra_repr(self):
-        inplace_str = 'inplace' if self.inplace else ''
-        return inplace_str
-
-def conv3x3(in_planes, out_planes, stride=1): # 3x3卷积，输入通道，输出通道，stride
-    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=False)
+from libs.components.conv import conv3x3
+from libs.components.activation import ReLU20
 
 class BasicBlock(nn.Module): # 定义block
     expansion = 1
@@ -43,7 +38,6 @@ class BasicBlock(nn.Module): # 定义block
         out += residual
         out = self.relu(out)
         return out # block输出
-
 
 class SpeakerEmbNet(nn.Module): # 定义resnet
     def __init__(self, opts): # block类型，embedding大小，分类数，maigin大小
@@ -119,10 +113,8 @@ if __name__ == '__main__':
     import yaml
     from yaml import CLoader
     from torchsummary import summary
-    f = open('./conf/config.yaml', 'r')
+    f = open('../../conf/model/resnet.yaml', 'r')
     opts = yaml.load(f, Loader = CLoader)
     f.close()
-    print(opts['model']['resnet'])
-    net = SpeakerEmbNet(opts['model'])
-    print(net)
-    summary(net.cuda(), (1, 257, 100))
+    net = SpeakerEmbNet(opts)
+    summary(net.cuda(), (161, 300))
