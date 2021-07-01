@@ -138,3 +138,6 @@ demos/*/*/nohup.out
 demos/*/*/*.out
 demos/*/resnet18/*
 demos/*/orthogonal_resnet/*
+demos/*/resnet_*/*
+demos/*/xvector_*/*
+demos/*/se-wavenet/*

@@ -47,6 +47,7 @@ class Evaluator(object):
             _, xv = self.model.extract_embedding(feature)
         elif self.location == 'far': 
             xv, _ = self.model.extract_embedding(feature)
+            #  xv = self.model(feature)
             xv = F.normalize(xv)
         return xv
 

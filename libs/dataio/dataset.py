@@ -29,6 +29,10 @@ class SpeechTrainDataset(Dataset):
         self.win_len = opts['win_len']
         self.win_shift = opts['win_shift']
         feat_type = opts['feat_type']
+        if 'repeat' in opts:
+            repeat = opts['repeat']
+        else:
+            repeat = True
 
         # read audio file path from manifest
         self.dataset = []
@@ -54,13 +58,16 @@ class SpeechTrainDataset(Dataset):
         # compute the length of dataset according to mean duration and total duration
         total_duration -= self.dev_total_duration
         mean_duration_per_utt = (np.mean(frame_range) - 1) * self.win_shift + self.win_len
-        self.count = math.floor(total_duration / mean_duration_per_utt) # make sure each sampling point in data will be used
-        #  self.count = self.count - opts['dev_number']
-        #  print(self.count)
+        if repeat:
+            self.count = math.floor(total_duration / mean_duration_per_utt) # make sure each sampling point in data will be used
+        else:
+            self.count = count - opts['dev_number']
 
         # set feature extractor according to feature type
         if 'kaldi' in feat_type:
             from libs.dataio.feature import KaldiFeatureExtractor as FeatureExtractor
+        elif 'wave' in feat_type:
+            from libs.dataio.feature import RawWaveform as FeatureExtractor
         else:
             from libs.dataio.feature import FeatureExtractor
         try:

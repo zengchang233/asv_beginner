@@ -4,9 +4,11 @@ import torch.nn.functional as F
 
 class TDNNLayer(nn.Module):
     '''
-    TDNN + BN + activation
+    TDNN + activation + BN 
+    The paper "How to Improve Your Speaker Embeddings Extractor in Generic Toolkits" shows BN after activation is
+    better than BN before activation
     '''
-    def __init__(self, input_channel, output_channel, context, padding = 0, stride = 1, bn_first = True):
+    def __init__(self, input_channel, output_channel, context, padding = 0, stride = 1):
         super(TDNNLayer, self).__init__()
         kernel_size = len(context)
         if len(context) > 1:
@@ -22,16 +24,11 @@ class TDNNLayer(nn.Module):
                 dilation = dilation
                 )
         self.bn = nn.BatchNorm1d(output_channel)
-        #  self.activation = nn.LeakyReLU(negative_slope = 0.2)
-        self.activation = nn.ReLU()
-        #  self.bn_first = bn_first
+        #  self.activation = nn.ReLU()
+        self.activation = nn.LeakyReLU(negative_slope = 0.2)
 
     def forward(self, x):
         x = self.context_layer(x)
-        #  if self.bn_first:
-            #  x = self.bn(x)
-            #  x = self.activation(x)
-        #  else:
         x = self.activation(x)
         x = self.bn(x)
         return x

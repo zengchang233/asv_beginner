@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torchaudio as ta
 from torchaudio.functional import *
-from torchaudio.transforms import ComputeDeltas, SlidingWindowCmn, Spectrogram, MelSpectrogram, MFCC
+from torchaudio.transforms import ComputeDeltas, SlidingWindowCmn, Spectrogram, MelSpectrogram, MFCC, MuLawEncoding
 import torchaudio.compliance.kaldi as kaldi
 
 from librosa import stft, magphase
@@ -133,22 +133,22 @@ class KaldiFeatureExtractor(nn.Module):
         self.opts = opts
         if self.feat_type == 'spectrogram': # torchaudio spectrogram
             self.feat = partial(kaldi.spectrogram, frame_length = self.opts['frame_length'],
-                           frame_shift = self.opts['frame_shift'],
-                           sample_frequency = self.rate)
+                                frame_shift = self.opts['frame_shift'],
+                                sample_frequency = self.rate)
         elif self.feat_type == 'fbank': # torchaudio fbank
             self.feat = partial(kaldi.fbank, sample_frequency = self.rate,
-                           frame_length = self.opts['frame_length'],
-                           frame_shift = self.opts['frame_shift'],
-                           num_mel_bins = self.opts['num_mel_bins'],
-                           use_energy = self.opts['use_energy'],
-                           use_log_fbank = self.opts['use_log_fbank'])
+                                frame_length = self.opts['frame_length'],
+                                frame_shift = self.opts['frame_shift'],
+                                num_mel_bins = self.opts['num_mel_bins'],
+                                use_energy = self.opts['use_energy'],
+                                use_log_fbank = self.opts['use_log_fbank'])
         elif self.feat_type == 'mfcc': # torchaudio mfcc
             self.feat = partial(kaldi.mfcc, sample_frequency = self.rate,
-                           frame_length = self.opts['frame_length'],
-                           frame_shift = self.opts['frame_shift'],
-                           num_ceps = self.opts['num_ceps'],
-                           num_mel_bins = self.opts['num_mel_bins'],
-                           use_energy = self.opts['use_energy'])
+                                frame_length = self.opts['frame_length'],
+                                frame_shift = self.opts['frame_shift'],
+                                num_ceps = self.opts['num_ceps'],
+                                num_mel_bins = self.opts['num_mel_bins'],
+                                use_energy = self.opts['use_energy'])
         else:
             raise NotImplementedError("Other features are not implemented!")
 
@@ -170,16 +170,31 @@ class KaldiFeatureExtractor(nn.Module):
         feature = torch.cat(feature, dim = 0)
         return feature.transpose(2,1).contiguous()
 
+class RawWaveform(nn.Module):
+    def __init__(self, rate, feat_type, opts):
+        super(RawWaveform).__init__()
+        self.rate = rate
+        mu_law_encoding = opts['mu_law_encoding']
+        if mu_law_encoding:
+            self.transform = MuLawEncoding()
+        else:
+            self.transform = torch.tensor
+
+    def forward(self, x):
+        wave = [self.transform(torch.from_numpy(data.reshape(1, -1))) for data in wave]
+        return torch.cat(wave, dim = 0)
+
 if __name__ == "__main__":
     import numpy as np
     import yaml
-    f = open("../../conf/data/kaldi_fbank.yaml")
+    f = open("../../conf/data/kaldi_spectrogram.yaml")
     config = yaml.load(f, Loader = yaml.CLoader)
     f.close()
-    feature_extractor = KaldiFeatureExtractor(16000, 'fbank', config)
+    feature_extractor = KaldiFeatureExtractor(16000, 'spectrogram', config)
     #  a = torch.randn(1, 45000)
     a = np.random.randn(1, 45000)
     a = a / np.abs(a).max()
     #  a = a / a.abs().max()
     feature = feature_extractor(a)
+    print(feature)
     print(feature.shape)

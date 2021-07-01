@@ -18,12 +18,11 @@ class XVector(nn.Module):
         layers_num = opts['tdnn_layers']
         embedding_dim = opts['embedding_dim']
         attention_hidden_size = opts['attention_hidden_size']
-        self.bn_first = opts['bn_first']
         self.activation = nn.ReLU()
         layers = []
 
         for i in range(layers_num):
-            layers.append(conv.TDNNLayer(input_dim, hidden_dim[i], context = context[i], stride = 1, bn_first = self.bn_first))
+            layers.append(conv.TDNNLayer(input_dim, hidden_dim[i], context = context[i], stride = 1))
             input_dim = hidden_dim[i]
 
         self.frame_level = nn.Sequential(*layers)
@@ -50,30 +49,22 @@ class XVector(nn.Module):
 
         self.bn1 = nn.BatchNorm1d(embedding_dim)
         self.fc2 = nn.Linear(embedding_dim, embedding_dim)
-        self.bn2 = nn.BatchNorm1d(embedding_dim)
+        #  self.bn2 = nn.BatchNorm1d(embedding_dim)
 
     def extract_embedding(self, x):
         x = self.frame_level(x)
         x = self.pooling(x)
         x.squeeze_(1)
         x_a = self.fc1(x)
-        if self.bn_first:
-            x = self.bn1(x_a)
-            x = self.activation(x)
-        else:
-            x = self.activation(x)
-            x = self.bn1(x_a)
+        x = self.activation(x)
+        x = self.bn1(x_a)
         x_b = self.fc2(x)
         return x_b, x_a
         
     def forward(self, x):
         x, _ = self.extract_embedding(x)
-        if self.bn_first:
-            x = self.bn2(x)
-            x = self.activation(x)
-        else:
-            x = self.activation(x)
-            x = self.bn2(x)
+        #  x = self.activation(x)
+        #  x = self.bn2(x)
         return x
 
         

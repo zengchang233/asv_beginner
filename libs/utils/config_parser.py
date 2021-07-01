@@ -5,7 +5,7 @@ class ArgParser(object):
         parser = argparse.ArgumentParser(description = "specify some important arguments")
         parser.add_argument("--feat-type", type = str, default = 'python_mfcc', dest = "feat_type", help = 'input feature')
         parser.add_argument("--input-dim", type = int, default = 30, dest = "input_dim", help = "dimension of input feature")
-        parser.add_argument("--arch", type = str, default = "tdnn", choices = ["resnet", "tdnn", "etdnn", "ftdnn", "rawnet", "wav2spk"], help = "specify model architecture")
+        parser.add_argument("--arch", type = str, default = "tdnn", choices = ["resnet", "tdnn", "etdnn", "ftdnn", "rawnet", "wav2spk", "wavenet"], help = "specify model architecture")
         parser.add_argument("--loss", type = str, default = "AMSoftmax", choices = ["AMSoftmax", "CrossEntropy", "ASoftmax", "TripletLoss"], help = "specify loss function")
         parser.add_argument("--bs", type = int, default = 64, help = "specify batch size for training")
         # parser.add_argument("--collate", type = str, default = "length_varied", choices = ["kaldi", "length_varied"], help = "specify collate function in DataLoader")
