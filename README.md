@@ -24,6 +24,9 @@ torchaudio>=0.8.0
 tqdm
 scipy
 scikit-learn
+librosa
+numpy
+python_speech_features
 ```
 
 ## Implementation
@@ -98,6 +101,18 @@ scikit-learn
   - [ ] PLDA back-end
   - [ ] NPLDA back-end
   - [ ] Attention back-end
+
+### Results
+
+- VoxCeleb1
+    - TDNN
+        - clean: 5.10%
+        - aug: 4.07%
+    - ResNet12
+        - clean: 4.35%
+        - aug: 3.82%
+
+- CN-Celeb
 
 ## TODO
 
