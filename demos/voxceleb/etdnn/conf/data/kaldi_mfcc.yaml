@@ -1,0 +1,5 @@
+frame_length: 25
+frame_shift: 10
+num_ceps: 30
+num_mel_bins: 30
+use_energy: true

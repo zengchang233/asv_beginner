@@ -1,0 +1,10 @@
+# config file for tdnn, etdnn
+input_dim: 30
+hidden_dim: [512,512,512,512,1500]
+context: [[-2,-1,0,1,2],[-2,0,2],[-3,0,3],[0],[0]]
+tdnn_layers: 5
+fc_layers: 3
+embedding_dim: 512
+pooling: STAT # (GAP, STAT, mono_head_attention, multi_head_attention, SAP, TAP)
+attention_hidden_size: 64
+bn_first: true
