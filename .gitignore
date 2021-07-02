@@ -136,6 +136,7 @@ demos/*/*/job.sh*
 demos/*/*/python3
 demos/*/*/nohup.out
 demos/*/*/*.out
+demos/*/*/results
 demos/*/resnet18/*
 demos/*/orthogonal_resnet/*
 demos/*/resnet_*/*
