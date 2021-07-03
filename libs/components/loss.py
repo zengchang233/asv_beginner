@@ -13,7 +13,7 @@ class CrossEntropy(nn.Module):
 
     def forward(self, embeddings, labels):
         logits = self.fc(embeddings)
-        loss = F.cross_entropy(logits + eps, labels)
+        loss = F.cross_entropy(logits, labels)
         return loss, logits
 
 class ASoftmax(nn.Module):

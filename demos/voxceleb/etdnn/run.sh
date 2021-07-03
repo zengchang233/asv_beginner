@@ -31,20 +31,18 @@ fi
     # no augmentation, repeat: % (xvector in kaldi EER is 5.302% as reference)
     # augmentation, no repeat: 3.86% (xvector in kaldi EER is 5.302% as reference)
     # augmentation, repeat: % (xvector in kaldi EER is 5.302% as reference)
-# voxceleb2 dev as training set (no voxceleb2 test set)
+# voxceleb2 dev + test as training set
     # no augmentation, no repeat: 2.86%
-# voxceleb2 dev as training set
-    # no augmentation, no repeat: 
 
 # evaluation on test set without backend (or using cosine backend)
 if [ $stage -le 1 ]; then
     expdir=$1
     start=$2
     stop=$3
-    for x in `seq $start $stop`; do
-        python local/evaluation.py -e $expdir -m net_${x}.pth -d cuda -l far
-        # python local/evaluation.py -e $expdir -m best_dev_model.pth -d cuda -l far
-    done
+    # for x in `seq $start $stop`; do
+    #     python local/evaluation.py -e $expdir -m net_${x}.pth -d cuda -l far
+        python local/evaluation.py -e $expdir -m best_dev_model.pth -d cuda -l far
+    # done
     echo "scoring with only frontend done!"
     exit 0;
 fi

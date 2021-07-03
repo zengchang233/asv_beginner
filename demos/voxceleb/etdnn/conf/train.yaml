@@ -14,12 +14,12 @@ resume: none
 collate: length_varied
 loss: AMSoftmax # CrossEntropy, A-Softmax, LMCL(AM-Softmax), AAM-Softmax, Contrastive, Triplet
 scale: 35
-margin: 0.2
+margin: 0.3
 lambda: 1
 sgd:
   init_lr: 0.01
   weight_decay: 0.00001
-  momentum: 0.5
+  momentum: 0.9
 adam:
   init_lr: 0.01
   weight_decay: 0.00001
