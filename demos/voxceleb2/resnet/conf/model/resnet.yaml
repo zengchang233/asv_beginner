@@ -1,0 +1,7 @@
+# config file for resnet
+input_dim: 1
+hidden_dim: [64,128,256,512]
+residual_block_layers: [3,3,3,3]
+fc_layers: 1
+embedding_dim: 512
+pooling: GAP

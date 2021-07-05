@@ -1,0 +1,5 @@
+n_fft: 320
+win_length: 320
+hop_length: 160
+normalize: true
+delta: false

@@ -1,0 +1,9 @@
+num_cep: 30
+log_mels: true
+fbank:
+  n_fft: 320
+  n_mels: 80
+  win_length: 320
+  hop_length: 160
+normalize: true
+delta: false
