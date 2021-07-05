@@ -19,7 +19,7 @@ lambda: 1
 sgd:
   init_lr: 0.01
   weight_decay: 0.00001
-  momentum: 0.9
+  momentum: 0.5
 adam:
   init_lr: 0.01
   weight_decay: 0.00001

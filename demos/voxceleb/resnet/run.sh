@@ -2,10 +2,28 @@
 
 alias python=`which python3`
 
-stage=0
+stage=1
 # train a frontend module
 if [ $stage -le 0 ]; then
-    python local/nnet/trainer.py --arch resnet --device cuda --bs 64 --feat-type kaldi_fbank --input-dim 80 # --resume exp/Sun_Jun_13_12_36_33_2021/net_29.pth
+    # options:
+    # --feat-type {python,kaldi}_{fbank,mfcc,spectrogram}
+    # --input-dim 1 for resnet, feature dimension for xvector
+    # --arch resnet, tdnn, etdnn, ... take ../../../libs/nnet/*.py as reference
+    # --loss CrossEntropy, AMSoftmax, TripletLoss, ...
+    # --bs batch size
+    # --device gpu or cpu
+    # --resume resume path
+    # --mode depreciated
+    python local/nnet/trainer.py \
+        --feat-type kaldi_fbank \
+        --input-dim 1 \
+        --arch resnet \
+        --loss AMSoftmax \
+        --bs 64 \
+        --device cuda \
+        # --resume exp/Sun_Jun_13_12_36_33_2021/net_29.pth
+    echo "frontend training done!"
+    exit 0;
 fi
 
 ##### Result #####
@@ -15,18 +33,17 @@ fi
 # voxceleb1 dev as training set, voxceleb1 test as test set
     # no augmentation: EER: 4.35%
     # augmentation with MUSAN and RIRS: EER: 3.82% (xvector in kaldi EER is 5.302% as reference)
-echo "frontend training done!"
-exit 0;
 
 # evaluation on test set without backend (or using cosine backend)
 if [ $stage -le 1 ]; then
     expdir=$1
     start=$2
     stop=$3
-    for x in `seq $start $stop`; do
+    # for x in `seq $start $stop`; do
         # model=`basename $x`
-        python local/evaluation.py -e $expdir -m net_${x}.pth -d cuda -l far
-    done
+        # python local/evaluation.py -e $expdir -m net_${x}.pth -d cuda -l far
+        python local/evaluation.py -e $expdir -m best_dev_model.pth -d cuda -l far
+    # done
 fi
 
 echo "scoring with only frontend done!"

@@ -1,13 +1,10 @@
 device: gpu # gpu, cpu
-gpus_id: [0,1,2,3]
+gpus_id: [0]
 type: sgd
-bs: 128 
+bs: 64
 lr_decay: 0.1
 lr_scheduler: multi_step
 check_interval: 1000
-lr_scheduler_mode: min
-min_lr: 0.000001 
-patience: 5
 epoch: 40
 milestones: [20,35]
 resume: none

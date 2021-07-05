@@ -32,7 +32,7 @@ fi
     # augmentation, no repeat: 3.86% (xvector in kaldi EER is 5.302% as reference)
     # augmentation, repeat: % (xvector in kaldi EER is 5.302% as reference)
 # voxceleb2 dev + test as training set
-    # no augmentation, no repeat: 2.86%
+    # no augmentation, no repeat: 2.82%
 
 # evaluation on test set without backend (or using cosine backend)
 if [ $stage -le 1 ]; then

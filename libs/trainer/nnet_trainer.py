@@ -8,6 +8,7 @@ sys.path.insert(0, "../../")
 import torch
 from torch.utils.data import DataLoader
 import torch.optim as optim
+from torch.optim import lr_scheduler
 
 import libs.dataio.dataset as dataset
 from libs.utils.utils import read_config
@@ -106,8 +107,23 @@ class NNetTrainer(object):
         elif self.train_opts['type'] == 'adam':
             optim_opts = self.train_opts['adam']
             self.optim = optim.Adam(param_groups, optim_opts['init_lr'], weight_decay = optim_opts['weight_decay'])
+        elif self.train_opts['type'] == 'adamw':
+            optim_opts = self.train_opts['adamw']
+            self.optim = optim.AdamW(param_groups, optim_opts['init_lr'], betas = (optim_opts['beta1'], optim_opts['beta2']), weight_decay = optim_opts['weight_decay'])
         logging.info("Using {} optimizer".format(self.train_opts['type']))
+
         # you can define your scheduler according to your preference
+        if self.train_opts['lr_scheduler'] == 'step':
+            self.lr_scheduler = lr_scheduler.StepLR(self.optim, step_size = self.train_opts['step_size'], gamma = self.train_opts['lr_decay'])
+        elif self.train_opts['lr_scheduler'] == 'multi_step':
+            self.lr_scheduler = lr_scheduler.MultiStepLR(self.optim, milestones = self.train_opts['milestones'], gamma = self.train_opts['lr_decay'])
+        elif self.train_opts['lr_scheduler'] == 'cosineannealingwarmup':
+            self.lr_scheduler = lr_scheduler.CosineAnnealingWarmRestarts(self.optim, T_0 = self.train_opts['T_0'], 
+                                                                         T_mult = self.train_opts['T_mult'], eta_min = 4e-8)
+        elif self.train_opts['lr_scheduler'] == 'reducep':
+            self.lr_scheduler = lr_scheduler.ReduceLROnPlateau(self.optim, mode = self.train_opts['lr_scheduler_mode'],
+                                                               factor = self.train_opts['lr_decay'], patience = self.train_opts['patience'],
+                                                               min_lr = self.train_opts['min_lr'], verbose = True)
         # self.lr_scheduler = ...
 
     def build_dataloader(self): 
