@@ -55,6 +55,7 @@ class SpeakerEmbNet(nn.Module): # 定义resnet
         for dim, block_layer in zip(hidden_dim, residual_block_layers):
             block_layers.append(nn.Conv2d(input_dim, dim, kernel_size = 5, stride = 2, padding = 2, bias = False))
             block_layers.append(nn.BatchNorm2d(dim))
+            #  block_layers.append(ReLU20(inplace = True))
             block_layers.append(self._make_layer(block, dim, block_layer))
             input_dim = dim
 
@@ -70,6 +71,8 @@ class SpeakerEmbNet(nn.Module): # 定义resnet
         self.fc = nn.Sequential(
             nn.Linear(hidden_dim[-1] * 4, embedding_size),
             nn.BatchNorm1d(embedding_size)
+            #  nn.ReLU(),
+            #  nn.Linear(embedding_size, embedding_size)
         )
 
         for m in self.modules(): # 对于各层参数的初始化

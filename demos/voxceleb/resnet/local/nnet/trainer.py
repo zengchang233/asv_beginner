@@ -13,6 +13,7 @@ import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 from tqdm import tqdm
 from sklearn.metrics.pairwise import cosine_similarity
+from torchsummary import summary
 
 from libs.trainer import nnet_trainer
 from libs.dataio import dataset
@@ -25,6 +26,7 @@ from libs.utils.performance_eval import compute_eer
 class ResNetTrainer(nnet_trainer.NNetTrainer):
     def __init__(self, data_opts, model_opts, train_opts, args):
         super(ResNetTrainer, self).__init__(data_opts, model_opts, train_opts, args)
+        summary(self.model, (80, 300))
 
     def build_model(self):
         model_config = read_config("conf/model/{}.yaml".format(self.model_opts['arch']))

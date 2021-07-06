@@ -104,13 +104,17 @@ python_speech_features
 
 ### Results
 
-- VoxCeleb1
-    - TDNN
+- VoxCeleb1 (no repeat)
+    - TDNN: log fbank (80 dims)
         - clean: 5.10%
         - aug: 4.07%
-    - ResNet12
-        - clean: 4.35%
-        - aug: 3.82%
+    - ResCNN
+        - log fbank (80 dims) + energy
+            - clean: 4.46%
+            - aug: %
+        - log stft (161 dims)
+            - clean: 4.57%
+            - aug: &
 
 - CN-Celeb
 
