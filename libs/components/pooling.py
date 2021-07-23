@@ -4,6 +4,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from libs.components import attention
+
 class TAP(nn.Module):
     def __init__(self):
         super(TAP, self).__init__()
@@ -49,9 +51,82 @@ class STAT(nn.Module):
         returns:
             embedding: (B x C)
         '''
-        mean = torch.mean(feature_map, dim=2)
-        std = torch.std(feature_map, dim=2)
+        mean = torch.mean(feature_map, dim=2, keepdim = True)
+        std = torch.std(feature_map, dim=2, keepdim = True)
         return torch.cat([mean, std], dim=1)
+
+class MultiHeadFFA(nn.Module):
+    def __init__(self, input_dim, hidden_dim):
+        super(MultiHeadFFA, self).__init__()
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
+
+
+    def forward(self, feature_map):
+        '''
+        params:
+            feature_map: (B x C x T)
+        returns:
+            embeddings: (B x C)
+        '''
+        pass
+
+class AttentiveStatPooling(nn.Module):
+    def __init__(self, hidden_size, input_size = 1, hidden_layer = True, bias = True):
+        super(AttentiveStatPooling, self).__init__()
+        self.hidden_size = hidden_size
+        self.input_size = input_size
+        self.activation = nn.ReLU()
+        self.hidden_layer = hidden_layer
+        self.bias = bias
+        if hidden_layer:
+            self.W = nn.Parameter(torch.Tensor(hidden_size, input_size), requires_grad = True)
+            if bias:
+                #  self.b = nn.Parameter(torch.Tensor(1, hidden_size), requires_grad = True)
+                self.b = nn.Parameter(torch.Tensor(hidden_size, 1), requires_grad = True)
+        self.v = nn.Parameter(torch.Tensor(hidden_size, 1), requires_grad = True)
+        if bias:
+            self.k = nn.Parameter(torch.Tensor(1, 1), requires_grad = True)
+        self._initialize_parameters()
+
+    def _initialize_parameters(self):
+        for parameter in self.parameters():
+            nn.init.kaiming_normal_(parameter)
+            
+    def get_attention(self, x):
+        '''
+        params:
+            x: (B, C, T)
+        return:
+            alpha: (B, 1, T)
+        '''
+        if self.hidden_layer:
+            if self.bias:
+                hidden_mat = self.W.matmul(x) + self.b # B, H, T
+            else:
+                hidden_mat = self.W.matmul(x)
+            x = self.activation(hidden_mat)
+        if self.bias:
+            e = self.v.T.matmul(x) + self.k # B, 1, T
+        else:
+            e = self.v.T.matmul(x)
+        e = e.squeeze(1) # B, T
+        alpha = F.softmax(torch.tanh(e), dim = 1) # B, T, torch.tanh is a key operation to prevent gradient vanish
+        #  alpha = F.softmax(e, dim = 1) # B, T, torch.tanh is a key operation to prevent gradient vanish
+        return alpha.unsqueeze(-1) 
+    
+    def forward(self, x):
+        '''
+        params:
+            x: (B, C, T)
+        return:
+            attention_embedding: (B, C * 2)
+        '''
+        alpha = self.get_attention(x) # B, T, 1
+        attention_mean = x.matmul(alpha).squeeze(-1)
+        attention_std = torch.sqrt(((x - attention_mean.unsqueeze(-1)) ** 2).matmul(alpha)).squeeze(-1)
+        attention_embedding = torch.cat([attention_mean, attention_std], dim = 1)
+        return attention_embedding#.unsqueeze(-1)
 
 class AttentiveStatisticsPooling(torch.nn.Module):
     """ An attentive statistics pooling.
@@ -72,7 +147,7 @@ class AttentiveStatisticsPooling(torch.nn.Module):
         self.eps = eps
         self.stddev_attention = stddev_attention
 
-        self.attention = AttentionAlphaComponent(input_dim, num_head=1, share=True, affine_layers=affine_layers, 
+        self.attention = attention.AttentionAlphaComponent(input_dim, num_head=1, share=True, affine_layers=affine_layers, 
                                                  hidden_size=hidden_size, context=context)
 
     def forward(self, inputs):
@@ -100,21 +175,6 @@ class AttentiveStatisticsPooling(torch.nn.Module):
 
     def get_output_dim(self):
         return self.output_dim
-
-class MultiHeadSAP(nn.Module):
-    def __init__(self, input_dim, hidden_dim):
-        super(MultiHeadSAP, self).__init__()
-        self.input_dim = input_dim
-        self.hidden_dim = hidden_dim
-
-    def forward(self, feature_map):
-        '''
-        params:
-            feature_map: (B x C x T)
-        returns:
-            embeddings: (B x 2C)
-        '''
-        pass
 
 class LDEPooling(torch.nn.Module):
     """A novel learnable dictionary encoding layer.
@@ -150,122 +210,6 @@ class LDEPooling(torch.nn.Module):
     def get_output_dim(self):
         return self.output_dim
 
-class AttentionAlphaComponent(torch.nn.Module):
-    """Compute the alpha with attention module.
-            alpha = softmax(v'·f(w·x + b) + k) or softmax(v'·x + k)
-    where f is relu here and bias could be lost.
-    Support: 
-            1. Single or Multi-head attention
-            2. One affine or two affine
-            3. Share weight (last affine = vector) or un-shared weight (last affine = matrix)
-            4. Self-attention or time context attention (supported by context parameter of TdnnAffine)
-            5. Different temperatures for different heads.
-    """
-    def __init__(self, input_dim, num_head=1, split_input=True, share=True, affine_layers=2, 
-                 hidden_size=64, context=[0], bias=True, temperature=False, fixed=True):
-        super(AttentionAlphaComponent, self).__init__()
-        assert num_head >= 1
-        # Multi-head case.
-        if num_head > 1:
-            if split_input:
-                # Make sure fatures/planes with input_dim dims could be splited to num_head parts.
-                assert input_dim % num_head == 0
-            if temperature:
-                if fixed:
-                    t_list = []
-                    for i in range(num_head):
-                        t_list.append([[max(1, (i // 2) * 5)]])
-                    # shape [1, num_head, 1, 1]
-                    self.register_buffer('t', torch.tensor([t_list]))
-                else:
-                    # Different heads have different temperature.
-                    # Use 1 + self.t**2 in forward to make sure temperature >= 1.
-                    self.t = torch.nn.Parameter(torch.zeros(1, num_head, 1, 1))
-
-        self.input_dim = input_dim
-        self.num_head = num_head
-        self.split_input = split_input
-        self.share = share
-        self.temperature = temperature
-        self.fixed = fixed
-
-        if share:
-            # weight: [input_dim, 1] or [input_dim, hidden_size] -> [hidden_size, 1]
-            final_dim = 1
-        elif split_input:
-            # weight: [input_dim, input_dim // num_head] or [input_dim, hidden_size] -> [hidden_size, input_dim // num_head]
-            final_dim = input_dim // num_head
-        else:
-            # weight: [input_dim, input_dim] or [input_dim, hidden_size] -> [hidden_size, input_dim]
-            final_dim = input_dim
-
-        first_groups = 1
-        last_groups = 1
-
-        if affine_layers == 1:
-            last_affine_input_dim = input_dim
-            # (x, 1) for global case and (x, h) for split case.
-            if num_head > 1 and split_input:
-               last_groups = num_head
-            self.relu_affine = False
-        elif affine_layers == 2:
-            last_affine_input_dim = hidden_size * num_head
-            if num_head > 1:
-                # (1, h) for global case and (h, h) for split case.
-                last_groups = num_head
-                if split_input:
-                    first_groups = num_head
-            # Add a relu-affine with affine_layers=2.
-            self.relu_affine = True
-            self.first_affine = TdnnAffine(input_dim, last_affine_input_dim, context=context, bias=bias, groups=first_groups)
-            self.relu = torch.nn.ReLU(inplace=True)
-        else:
-            raise ValueError("Expected 1 or 2 affine layers, but got {}.",format(affine_layers))
-
-        self.last_affine = TdnnAffine(last_affine_input_dim, final_dim * num_head, context=context, bias=bias, groups=last_groups)
-        # Dim=2 means to apply softmax in different frames-index (batch is a 3-dim tensor in this case).
-        self.softmax = torch.nn.Softmax(dim=2)
-
-    def forward(self, inputs):
-        """
-        @inputs: a 3-dimensional tensor (a batch), including [samples-index, frames-dim-index, frames-index]
-        """
-        assert len(inputs.shape) == 3
-        assert inputs.shape[1] == self.input_dim
-
-        if self.temperature:
-            batch_size = inputs.shape[0]
-            chunk_size = inputs.shape[2]
-
-        x = inputs
-        if self.relu_affine:
-            x = self.relu(self.first_affine(x))
-        if self.num_head > 1 and self.temperature:
-            if self.fixed:
-                t = self.t
-            else:
-                t = 1 + self.t**2
-            x = self.last_affine(x).reshape(batch_size, self.num_head, -1, chunk_size) / t
-            return self.softmax(x.reshape(batch_size, -1, chunk_size))
-        else:
-            return self.softmax(self.last_affine(x))
-
-class MultiHeadFFA(nn.Module):
-    def __init__(self, input_dim, hidden_dim):
-        super(MultiHeadFFA, self).__init__()
-        self.input_dim = input_dim
-        self.hidden_dim = hidden_dim
-
-
-    def forward(self, feature_map):
-        '''
-        params:
-            feature_map: (B x C x T)
-        returns:
-            embeddings: (B x C)
-        '''
-        pass
-
 class MultiHeadAttentionPooling(torch.nn.Module):
     """Implement multi-head attention pooling based on AttentionAlphaComponent.
     Reference: Safari, Pooyan, and Javier Hernando. 2019. “Self Multi-Head Attention for Speaker 
@@ -291,7 +235,7 @@ class MultiHeadAttentionPooling(torch.nn.Module):
             options.pop("split_input")
 
         # In this pooling, the special point is that inputs will be splited.
-        self.attention = AttentionAlphaComponent(input_dim, num_head=num_head, split_input=True, share=share, 
+        self.attention = attention.AttentionAlphaComponent(input_dim, num_head=num_head, split_input=True, share=share, 
                                                  affine_layers=affine_layers, bias=False, **options)
 
     def forward(self, inputs):
@@ -366,7 +310,7 @@ class GlobalMultiHeadAttentionPooling(torch.nn.Module):
             options.pop("temperature")
 
         # In this pooling, the special point is that all (global) features of inputs will be used.
-        self.attention = AttentionAlphaComponent(input_dim, num_head=num_head, split_input=False, share=share, 
+        self.attention = attention.AttentionAlphaComponent(input_dim, num_head=num_head, split_input=False, share=share, 
                                                  temperature=False, affine_layers=affine_layers, bias=True, **options)
 
     def forward(self, inputs):
@@ -440,7 +384,7 @@ class MultiResolutionMultiHeadAttentionPooling(torch.nn.Module):
 
         # In this pooling, the special point is that all (global) features of inputs will be used and
         # the temperature will be added.
-        self.attention = AttentionAlphaComponent(input_dim, num_head=num_head, split_input=False, temperature=True, 
+        self.attention = attention.AttentionAlphaComponent(input_dim, num_head=num_head, split_input=False, temperature=True, 
                                                  share=share, affine_layers=affine_layers, bias=True, **options)
 
     def forward(self, inputs):
@@ -483,3 +427,9 @@ class MultiResolutionMultiHeadAttentionPooling(torch.nn.Module):
 
     def get_output_dim(self):
         return self.output_dim * self.num_head
+
+if __name__ == '__main__':
+    inputs = torch.randn(4, 512, 300)
+    attention = AttentiveStatPooling(64, 512)
+    output = attention(inputs)
+    #  print(output.shape)

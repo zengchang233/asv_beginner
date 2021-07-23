@@ -15,7 +15,7 @@ if [ $stage -le 0 ]; then
     # --device gpu or cpu
     # --mode depreciated
     python local/nnet/trainer.py --feat-type kaldi_fbank --arch tdnn --input-dim 80 \
-        --device cuda --bs 64 --loss AMSoftmax # --resume exp/Tue_Jun_22_09_45_21_2021/net_23.pth
+        --device cuda --bs 64 --loss AMSoftmax # --resume exp/Sun_Jul_11_10_48_55_2021/net_7.pth
     echo "frontend training done!"
     exit 0;
 fi
@@ -30,8 +30,11 @@ fi
 # voxceleb1 dev as training set, voxceleb1 test as test set
     # no augmentation, no repeat: EER: 5.10% (xvector in kaldi EER is 5.302% as reference)
     # no augmentation, repeat: EER: 4.97% (xvector in kaldi EER is 5.302% as reference)
-    # augmentation with MUSAN and RIRS, no repeat: EER: 4.07% (xvector in kaldi EER is 5.302% as reference)
-    # augmentation with MUSAN and RIRS, repeat: EER: % (xvector in kaldi EER is 5.302% as reference)
+    # augmentation, no repeat: EER: 4.07% (xvector in kaldi EER is 5.302% as reference)
+    # augmentation, repeat: EER: % (xvector in kaldi EER is 5.302% as reference)
+    # augmentation, ASP (implemented by myself), no repeat: 3.94% (using asv subtools implementation, the result is 4.05%)
+    # augmentation, MultiHeadAttentionPooling, no repeat: 3.87%
+    # augmentation, MultiResolutionAttentionPooling, no repeat: 3.99%
 
 # evaluation on test set without backend (or using cosine backend)
 if [ $stage -le 1 ]; then

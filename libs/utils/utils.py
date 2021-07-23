@@ -1,5 +1,9 @@
+from itertools import combinations
+
 import yaml
 import numpy as np
+import torch
+import torch.nn.functional as F
 from torch.utils.data import BatchSampler
 
 def read_config(file_path): 
@@ -49,3 +53,33 @@ class BalancedBatchSampler(BatchSampler):
 
     def __len__(self):
         return self.n_dataset // self.batch_size
+
+# class BalancedBatchSampler(BatchSampler):
+#     """
+#     BatchSampler - from a MNIST-like dataset, samples n_classes and within these classes samples n_samples.
+#     Returns batches of size n_classes * n_samples
+#     """
+
+#     def __init__(self, n_classes, n_samples, classes_per_batch, samples_per_class):
+#         self.count = 0
+#         if type(n_classes) == int:
+#             self.n_classes = list(range(0, n_classes))
+#         elif type(n_classes) == list:
+#             self.n_classes = list(set(n_classes))
+#         self.n_samples = n_samples 
+#         self.classes_per_batch = classes_per_batch
+#         self.samples_per_class = samples_per_class
+#         self.batch_size = self.samples_per_class * self.classes_per_batch
+
+#     def __iter__(self):
+#         self.count = 0
+#         while self.count + self.batch_size < self.n_samples:
+#             classes = np.random.choice(self.n_classes, self.classes_per_batch, replace=False)
+#             indices = []
+#             for class_ in classes:
+#                 indices += [class_ for i in range(self.samples_per_class)]
+#             yield indices
+#             self.count += self.classes_per_batch * self.samples_per_class
+
+#     def __len__(self):
+#         return self.n_samples // self.batch_size

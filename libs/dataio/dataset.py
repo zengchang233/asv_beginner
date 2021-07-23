@@ -10,7 +10,7 @@ sys.path.insert(0, "../../")
 
 import numpy as np
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, BatchSampler
 import soundfile as sf
 #  import torchaudio as ta
 #  from torchaudio.transforms import *
@@ -137,7 +137,7 @@ class SpeechTrainDataset(Dataset):
     def get_dev_data(self):
         idx = 0
         while idx < self.dev_number:
-            (wav_path, duration, rate), spk = self.dev[idx]
+            (wav_path, _, __), spk = self.dev[idx]
             data, _ = self._load_audio(wav_path)
             feat = self.feature_extractor([data])
             yield feat, torch.LongTensor([spk])
@@ -151,8 +151,8 @@ class SpeechTrainDataset(Dataset):
             wavlist.extend(i)
             spk.extend([ind] * len(i))
         while idx < len(wavlist):
-            wav_path, duration, rate = wavlist[idx]
-            data, _ = self.load(wav_path)
+            wav_path, _, __ = wavlist[idx]
+            data, _ = self._load_audio(wav_path)
             feat = self.feature_extractor(data)
             yield feat, spk[idx], os.path.basename(wav_path).replace('.wav', '.npy')
             #  yield feat, wav_path

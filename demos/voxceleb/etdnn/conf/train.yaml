@@ -3,7 +3,7 @@ gpus_id: [0]
 type: sgd
 bs: 64
 lr_decay: 0.1
-lr_scheduler: milestones
+lr_scheduler: multi_step
 milestones: [20,35]
 check_interval: 10000
 lr_scheduler_mode: min

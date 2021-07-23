@@ -3,9 +3,9 @@ gpus_id: [0,1,2,3]
 type: sgd
 bs: 256
 lr_decay: 0.1
-lr_scheduler: milestones
+lr_scheduler: multi_step
 milestones: [20, 35]
-check_interval: 3000
+check_interval: 5000
 lr_scheduler_mode: min
 min_lr: 0.000001 
 patience: 5

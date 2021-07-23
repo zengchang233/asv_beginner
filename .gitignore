@@ -142,3 +142,4 @@ demos/*/orthogonal_resnet/*
 demos/*/resnet_*/*
 demos/*/xvector_*/*
 demos/*/se-wavenet/*
+demos/xunfei2021

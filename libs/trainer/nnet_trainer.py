@@ -10,12 +10,13 @@ from torch.utils.data import DataLoader
 import torch.optim as optim
 from torch.optim import lr_scheduler
 
+from libs.trainer import base_trainer
 import libs.dataio.dataset as dataset
 from libs.utils.utils import read_config
 from libs.utils.config_parser import ArgParser
 from libs.components import loss
 
-class NNetTrainer(object):
+class NNetTrainer(base_trainer.BaseTrainer):
     def __init__(self, data_opts = None, model_opts = None, train_opts = None, args = None):
         # set configuration according to options parsed by argparse module
         # print(args)
@@ -49,25 +50,7 @@ class NNetTrainer(object):
         self.epoch = self.train_opts['epoch']
         logging.info("Total train {} epochs".format(self.epoch))
         self.current_epoch = 0
-
-        # build model
-        self.build_model()
-
-        # mv to device
-        self._move_to_device()
-
-        # build dataloader
-        self.build_dataloader()
-
-        # build loss
-        self.build_criterion()
-
-        # build optimizer
-        self.build_optimizer()
-
-        # resume model from saved path
-        if os.path.exists(self.train_opts['resume']):
-            self.load(self.train_opts['resume'])
+        super(NNetTrainer, self).__init__()
 
     def build_model(self):
         '''
@@ -77,7 +60,9 @@ class NNetTrainer(object):
         2. model
         '''
         # you MUST overwrite this function
-        raise NotImplementedError("Please implement this function by yourself!")
+        if __name__ == '__main__':
+            print("build model")
+        #  raise NotImplementedError("Please implement this function by yourself!")
 
     def build_criterion(self):
         '''
@@ -89,6 +74,18 @@ class NNetTrainer(object):
             self.criterion = loss.CrossEntropy(self.embedding_dim, self.n_spk).to(self.device)
         elif self.train_opts['loss'] == 'AMSoftmax':
             self.criterion = loss.AMSoftmax(self.embedding_dim, self.n_spk, self.train_opts['scale'], self.train_opts['margin']).to(self.device)
+        elif self.train_opts['loss'] == 'TripletLoss':
+            from libs.utils.utils import RandomNegativeTripletSelector, SemihardNegativeTripletSelector, HardestNegativeTripletSelector
+            self.margin = self.train_opts['margin']
+            if self.train_opts['selector'] == 'hardest':
+                selector = HardestNegativeTripletSelector(self.margin)
+            elif self.train_opts['selector'] == 'semihard':
+                selector = SemihardNegativeTripletSelector(self.margin)
+            elif self.train_opts['selector'] == 'randomhard':
+                selector = RandomNegativeTripletSelector(self.margin)
+            else:
+                raise NotImplementedError("Other triplet selector has not been implemented yet!")
+            self.criterion = loss.OnlineTripletLoss(self.margin, selector).to(self.device)
         else:
             raise NotImplementedError("Other loss function has not been implemented yet!")
         logging.info('Using {} loss function'.format(self.train_opts['loss']))
@@ -124,6 +121,10 @@ class NNetTrainer(object):
             self.lr_scheduler = lr_scheduler.ReduceLROnPlateau(self.optim, mode = self.train_opts['lr_scheduler_mode'],
                                                                factor = self.train_opts['lr_decay'], patience = self.train_opts['patience'],
                                                                min_lr = self.train_opts['min_lr'], verbose = True)
+        elif self.train_opts['lr_scheduler'] == 'cyclic':
+            self.lr_scheduler = lr_scheduler.CyclicLR(self.optim, base_lr = self.train_opts['base_lr'], 
+                                                      max_lr = self.train_opts['max_lr'], step_size_up = self.train_opts['step_size_up'],
+                                                      mode = self.train_opts['mode'])
         # self.lr_scheduler = ...
 
     def build_dataloader(self): 
@@ -133,118 +134,30 @@ class NNetTrainer(object):
         1. trainloader 
         '''
         train_collate_fn = self.trainset.collate_fn
-        self.trainloader = DataLoader(self.trainset, shuffle = True, collate_fn = train_collate_fn, batch_size = self.train_opts['bs'] * self.device_num, num_workers = 16, pin_memory = True)
+        if self.train_opts['loss'] == 'TripletLoss':
+            from libs.dataio.dataset import BalancedBatchSampler
+            utt_per_spk = self.train_opts['utt_per_spk']
+            spk_per_batch = self.train_opts['spk_per_batch']
+            batch_sampler = BalancedBatchSampler(self.n_spk, self.trainset.count, spk_per_batch, utt_per_spk)
+            self.trainloader = DataLoader(self.trainset, collate_fn = train_collate_fn, batch_sampler = batch_sampler, 
+                                          num_workers = 16, pin_memory = True)
+        else:
+            batch_sampler = None
+            self.trainloader = DataLoader(self.trainset, shuffle = True, collate_fn = train_collate_fn, batch_sampler = batch_sampler, 
+                                          batch_size = self.train_opts['bs'] * self.device_num, num_workers = 16, pin_memory = True)
     
     def train_epoch(self): 
         # you MUST overwrite this function
-        raise NotImplementedError("Please implement this function by yourself!")
+        if __name__ == '__main__':
+            print("train epoch")
+        else:
+            raise NotImplementedError("Please implement this function by yourself!")
 
     def _dev(self): 
-        raise NotImplementedError("Please implement this function by yourself!")
-
-    def _move_to_device(self):
-        if self.train_opts['device'] == 'cuda':
-            self.device = torch.device('cuda')
-            if self.mode == 'test':
-                device_ids = [0]
-                device_num = 1
-            else:
-                device_ids = self.train_opts['gpus_id']
-                device_num = torch.cuda.device_count()
-                if device_num >= len(device_ids):
-                    device_num = len(device_ids)
-                else:
-                    logging.warn('There are only {} GPU cards in this machine, using all of them'.format(device_num))
-                    device_ids = list(range(device_num))
-            self.model = torch.nn.DataParallel(self.model.to(self.device), device_ids = device_ids)
-            logging.info("Using GPU: {}".format(device_ids))
-            self.device_num = device_num
+        if __name__ == '__main__':
+            print("")
         else:
-            self.device = torch.device('cpu')
-            self.model = self.model.to(self.device)
-            logging.info("Using CPU")
-            self.device_num = 1
-
-    def model_average(self, avg_num = 4):
-        model_state_dict = {}
-        for i in range(avg_num):
-            suffix = self.current_epoch - i
-            ckpt = torch.load('exp/{}/net_{}.pth'.format(self.log_time, suffix))
-            state_dict = ckpt['state_dict']
-            for k, v in state_dict.items():
-                if k in model_state_dict:
-                    model_state_dict[k] += v
-                else:
-                    model_state_dict[k] = v
-        for k, v in model_state_dict.items():
-            model_state_dict[k] = v / avg_num
-        torch.save({'epoch': 0, 'state_dict': model_state_dict,
-                    'optimizer': ckpt['optimizer']},
-                    'exp/{}/net_avg.pth'.format(self.log_time))
-        self.model.load_state_dict(model_state_dict)
-
-    def save(self, filename = None):
-        model = self.model.module # DO NOT save DataParallel wrapper
-        if filename is None:
-            torch.save({'epoch': self.current_epoch, 'state_dict': model.state_dict(), 'criterion': self.criterion,
-                        'lr_scheduler': self.lr_scheduler.state_dict(), 'optimizer': self.optim.state_dict()},
-                        'exp/{}/net_{}.pth'.format(self.log_time, self.current_epoch))
-        else:
-            torch.save({'epoch': self.current_epoch, 'state_dict': model.state_dict(), 'criterion': self.criterion,
-                        'lr_scheduler': self.lr_scheduler.state_dict(), 'optimizer': self.optim.state_dict()},
-                        'exp/{}/{}'.format(self.log_time, filename))
-
-    def load(self, resume):
-        ckpt = torch.load(resume)
-        if self.train_opts['device'] == 'cuda':
-            self.model.module.load_state_dict(ckpt['state_dict'])
-        else:
-            self.model.load_state_dict(ckpt['state_dict'])
-        if 'criterion' in ckpt:
-            self.criterion = ckpt['criterion']
-        if 'lr_scheduler' in ckpt:
-            self.lr_scheduler.load_state_dict(ckpt['lr_scheduler'])
-        self.optim.load_state_dict(ckpt['optimizer'])
-        self.current_epoch = ckpt['epoch']
-
-    def train(self):
-        start_epoch = self.current_epoch
-        self.best_dev_epoch = self.current_epoch
-        self.best_dev_loss = 1000
-        self.count = 0
-        self.dev_check_count = 0
-        for epoch in range(start_epoch + 1, self.epoch + 1):
-            self.current_epoch = epoch
-            logging.info("Epoch {}".format(self.current_epoch))
-            stop = self.train_epoch()
-            self.save()
-            if stop == -1:
-                break 
-
-    def _reset_opts(self, module, opts):
-        if module == 'data':
-            for k, v in opts.items():
-                self.data_opts[k] = v
-        elif module == 'model':
-            for k, v in opts.items():
-                self.model_opts[k] = v
-        elif module == 'train':
-            for k, v in opts.items():
-                self.train_opts[k] = v
-
-    def __call__(self):
-        os.makedirs('exp/{}/conf'.format(self.log_time), exist_ok = True)
-        if not os.path.exists("exp/{}/conf/data.yaml".format(self.log_time)):
-            with open("exp/{}/conf/data.yaml".format(self.log_time), 'w') as f:
-                yaml.dump(self.data_opts, f)
-        if not os.path.exists("exp/{}/conf/model.yaml".format(self.log_time)):
-            with open("exp/{}/conf/model.yaml".format(self.log_time), 'w') as f:
-                yaml.dump(self.model_opts, f)
-        if not os.path.exists("exp/{}/conf/train.yaml".format(self.log_time)):
-            with open("exp/{}/conf/train.yaml".format(self.log_time), 'w') as f:
-                yaml.dump(self.train_opts, f)
-        logging.info("start training")
-        self.train()
+            raise NotImplementedError("Please implement this function by yourself!")
 
 if __name__ == "__main__":
     def main():

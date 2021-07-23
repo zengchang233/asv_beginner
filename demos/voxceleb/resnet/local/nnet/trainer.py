@@ -43,7 +43,7 @@ class ResNetTrainer(nnet_trainer.NNetTrainer):
     
     def build_optimizer(self):
         super().build_optimizer()
-        self.lr_scheduler = lr_scheduler.MultiStepLR(self.optim, milestones = self.train_opts['milestones'], gamma = self.train_opts['lr_decay'])
+        #  self.lr_scheduler = lr_scheduler.MultiStepLR(self.optim, milestones = self.train_opts['milestones'], gamma = self.train_opts['lr_decay'])
 
     def train_epoch(self):
         self.model.train()
@@ -138,8 +138,20 @@ class ResNetTrainer(nnet_trainer.NNetTrainer):
             xv = F.normalize(xv)
         return xv
 
+def add_argument(parser):
+    parser.add_argument("--feat-type", type = str, default = 'python_mfcc', dest = "feat_type", help = 'input feature')
+    parser.add_argument("--input-dim", type = int, default = 30, dest = "input_dim", help = "dimension of input feature")
+    parser.add_argument("--arch", type = str, default = "tdnn", choices = ["resnet", "tdnn", "etdnn", "ftdnn", "rawnet", "wav2spk", "wavenet"], help = "specify model architecture")
+    parser.add_argument("--loss", type = str, default = "AMSoftmax", choices = ["AMSoftmax", "CrossEntropy", "ASoftmax", "TripletLoss"], help = "specify loss function")
+    parser.add_argument("--bs", type = int, default = 64, help = "specify batch size for training")
+    parser.add_argument("--resume", type = str, default = 'none', help = "if you give a ckpt path to this argument and if the ckpt file exists, it will resume training based on this ckpt file. Otherwise, it will start a new training process")
+    parser.add_argument("--device", default = 'gpu', choices = ['cuda', 'cpu'], help = 'designate the device on which the model will run')
+    parser.add_argument("--mode", default = 'train', choices = ['train', 'test'], help = 'train or test mode')
+    return parser
+
 def main():
     parser = ArgParser()
+    parser = add_argument(parser)
     args = parser.parse_args()
     args = vars(args)
     data_config = read_config("conf/data.yaml")
@@ -147,7 +159,6 @@ def main():
     train_config = read_config("conf/train.yaml")
     trainer = ResNetTrainer(data_config, model_config, train_config, args)
     trainer()
-
 
 if __name__ == "__main__":
     main()

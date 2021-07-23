@@ -41,7 +41,7 @@ class XVTrainer(nnet_trainer.NNetTrainer):
     
     def build_optimizer(self):
         super().build_optimizer()
-        self.lr_scheduler = lr_scheduler.MultiStepLR(self.optim, milestones = self.train_opts['milestones'], gamma = self.train_opts['lr_decay'])
+        #  self.lr_scheduler = lr_scheduler.MultiStepLR(self.optim, milestones = self.train_opts['milestones'], gamma = self.train_opts['lr_decay'])
         #  self.lr_scheduler = lr_scheduler.StepLR(self.optim, step_size = 20, gamma = 0.1)
         #  self.lr_scheduler = lr_scheduler.ReduceLROnPlateau(self.optim, mode = self.train_opts['lr_scheduler_mode'],
                                                            #  factor = self.train_opts['lr_decay'], patience = self.train_opts['patience'],
@@ -67,19 +67,19 @@ class XVTrainer(nnet_trainer.NNetTrainer):
             
             loss.backward()
 
-            backbone_grad_norm = torch.nn.utils.clip_grad_norm_(
-                self.model.parameters(), self.train_opts['grad_clip_threshold']
-            )
-            logging.info("backbone grad norm = {}".format(backbone_grad_norm))
-            loss_grad_norm = torch.nn.utils.clip_grad_norm_(
-                self.criterion.parameters(), self.train_opts['grad_clip_threshold']
-            )
-            logging.info("criterion grad norm = {}".format(loss_grad_norm))
-
-            if math.isnan(backbone_grad_norm) or math.isnan(loss_grad_norm):
-                logging.warning("grad norm is nan. Do not update model.")
-            else: 
-                self.optim.step()
+            #  backbone_grad_norm = torch.nn.utils.clip_grad_norm_(
+            #      self.model.parameters(), self.train_opts['grad_clip_threshold']
+            #  )
+            #  logging.info("backbone grad norm = {}".format(backbone_grad_norm))
+            #  loss_grad_norm = torch.nn.utils.clip_grad_norm_(
+            #      self.criterion.parameters(), self.train_opts['grad_clip_threshold']
+            #  )
+            #  logging.info("criterion grad norm = {}".format(loss_grad_norm))
+            #
+            #  if math.isnan(backbone_grad_norm) or math.isnan(loss_grad_norm):
+            #      logging.warning("grad norm is nan. Do not update model.")
+            #  else:
+            self.optim.step()
 
             sum_loss += loss.item() * len(targets_label)
 
@@ -140,8 +140,20 @@ class XVTrainer(nnet_trainer.NNetTrainer):
             xv = F.normalize(xv)
         return xv
 
+def add_argument(parser):
+    parser.parser.add_argument("--feat-type", type = str, default = 'python_mfcc', dest = "feat_type", help = 'input feature')
+    parser.parser.add_argument("--input-dim", type = int, default = 30, dest = "input_dim", help = "dimension of input feature")
+    parser.parser.add_argument("--arch", type = str, default = "tdnn", choices = ["resnet", "tdnn", "etdnn", "ftdnn", "rawnet", "wav2spk", "wavenet"], help = "specify model architecture")
+    parser.parser.add_argument("--loss", type = str, default = "AMSoftmax", choices = ["AMSoftmax", "CrossEntropy", "ASoftmax", "TripletLoss"], help = "specify loss function")
+    parser.parser.add_argument("--bs", type = int, default = 64, help = "specify batch size for training")
+    parser.parser.add_argument("--resume", type = str, default = 'none', help = "if you give a ckpt path to this argument and if the ckpt file exists, it will resume training based on this ckpt file. Otherwise, it will start a new training process")
+    parser.parser.add_argument("--device", default = 'gpu', choices = ['cuda', 'cpu'], help = 'designate the device on which the model will run')
+    parser.parser.add_argument("--mode", default = 'train', choices = ['train', 'test'], help = 'train or test mode')
+    return parser
+
 def main():
     parser = ArgParser()
+    parser = add_argument(parser)
     args = parser.parse_args()
     args = vars(args)
     data_config = read_config("conf/data.yaml")

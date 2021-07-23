@@ -2,7 +2,7 @@
 
 alias python=`which python3`
 
-stage=0
+stage=1
 # train a frontend module
 if [ $stage -le 0 ]; then
     # options:
@@ -15,7 +15,7 @@ if [ $stage -le 0 ]; then
     # --resume resume path
     # --mode depreciated
     python local/nnet/trainer.py \
-        --feat-type kaldi_fbank \
+        --feat-type python_spectrogram \
         --input-dim 1 \
         --arch resnet \
         --loss AMSoftmax \
@@ -40,7 +40,7 @@ fi
 # loss: AMSoftmax (s=20,m=0.3)
 # voxceleb1 dev as training set, voxceleb1 test as test set
     # no augmentation, no repeat: 4.46%
-    # no augmentation, repeat: %
+    # no augmentation, repeat: 4.90% ?
     # augmentation, no repeat: % (xvector in kaldi EER is 5.302% as reference)
     # augmentation, repeat: %
     

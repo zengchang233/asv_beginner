@@ -26,7 +26,6 @@ scipy
 scikit-learn
 librosa
 numpy
-python_speech_features
 ```
 
 ## Implementation
@@ -34,7 +33,8 @@ python_speech_features
 ### dataio
 
 - [x] customized dataset implementation
-- [x] librosa style feature and kaldi style feature (implemented by the api of torchaudio)
+- [x] librosa style feature and kaldi style feature 
+- [x] kaldi feature (implemented by the api of torchaudio)
 
 ### components
 
@@ -45,8 +45,8 @@ python_speech_features
 - [ ] pooling components
   - [x] statistic pooling
   - [x] temporal average pooling
-  - [ ] attentive statistic pooling
-  - [ ] learnable dictionary pooling
+  - [x] attentive statistic pooling
+  - [x] learnable dictionary pooling
 - [ ] loss components
   - [x] cross entropy
   - [ ] a-softmax
@@ -66,13 +66,15 @@ python_speech_features
 
 ### back-end
 
-- [ ] Attention Backend
+- [x] Attention Backend
 - [ ] PLDA
 - [ ] Neural PLDA
 
 ### trainer
 
 - [x] trainer basic class
+- [x] front-end trainer class
+- [x] back-end trainer class
 
 ## Demos
 
@@ -82,25 +84,25 @@ python_speech_features
   - [x] TDNN front-end
   - [ ] PLDA back-end
   - [ ] NPLDA back-end
-  - [ ] Attention back-end
+  - [x] Attention back-end
 - ResNet recipe
   - [x] ResNet front-end
   - [ ] PLDA back-end
   - [ ] NPLDA back-end
-  - [ ] Attention back-end
+  - [x] Attention back-end
 
 ### CN-Celeb
 
-- [ ] X-Vector recipe
-  - [ ] TDNN front-end
+- X-Vector recipe
+  - [x] TDNN front-end
   - [ ] PLDA back-end
   - [ ] NPLDA back-end
-  - [ ] Attention back-end
-- [ ] ResNet recipe
-  - [ ] ResNet front-end
+  - [x] Attention back-end
+- ResNet recipe
+  - [x] ResNet front-end
   - [ ] PLDA back-end
   - [ ] NPLDA back-end
-  - [ ] Attention back-end
+  - [x] Attention back-end
 
 ### Results
 
@@ -108,13 +110,16 @@ python_speech_features
     - TDNN: log fbank (80 dims)
         - clean: 5.10%
         - aug: 4.07%
+    - ETDNN: log fbank (80 dims)
+        - clean: 4.97%
+        - aug: 3.86%
     - ResCNN
         - log fbank (80 dims) + energy
             - clean: 4.46%
-            - aug: %
+            - aug: 3.82%
         - log stft (161 dims)
             - clean: 4.57%
-            - aug: &
+            - aug: %
 
 - CN-Celeb
 

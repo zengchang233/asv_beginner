@@ -18,6 +18,7 @@ class XVector(nn.Module):
         layers_num = opts['tdnn_layers']
         embedding_dim = opts['embedding_dim']
         attention_hidden_size = opts['attention_hidden_size']
+        num_head = opts['num_head']
         self.activation = nn.ReLU()
         layers = []
 
@@ -32,15 +33,22 @@ class XVector(nn.Module):
             self.pooling = pooling.STAT()
         elif opts['pooling'] == 'TAP':
             self.pooling = pooling.TAP()
-        elif opts['pooling'] == 'multi_head_sap':
-            self.pooling = pooling.MultiHeadSAP(hidden_dim[-1], attention_hidden_size)
+        elif opts['pooling'] == 'ASP':
+            self.pooling = pooling.AttentiveStatPooling(attention_hidden_size, hidden_dim[-1])
+            #  self.pooling = pooling.AttentiveStatisticsPooling(hidden_dim[-1], hidden_size = attention_hidden_size)
         elif opts['pooling'] == 'multi_head_ffa':
             self.pooling = pooling.MultiHeadFFA(hidden_dim[-1], attention_hidden_size)
+        elif opts['pooling'] == 'multi_head_attention':
+            self.pooling = pooling.MultiHeadAttentionPooling(hidden_dim[-1], num_head = num_head)
+        elif opts['pooling'] == 'multi_resolution_attention':
+            self.pooling = pooling.MultiResolutionMultiHeadAttentionPooling(hidden_dim[-1], num_head = num_head)
         else:
             raise NotImplementedError('Other pooling method has not implemented.')
 
         # first fc layer
-        if opts['pooling'] == 'STAT' or opts['pooling'] == 'multi_head_sap':
+        if opts['pooling'] == 'STAT' or opts['pooling'] == 'ASP' \
+                or opts['pooling'] == 'multi_head_attention' \
+                or opts['pooling'] == 'multi_resolution_attention':
             self.fc1 = nn.Linear(hidden_dim[-1] * 2, embedding_dim)
         elif opts['pooling'] == 'TAP' or opts['pooling'] == 'multi_head_ffa':
             self.fc1 = nn.Linear(hidden_dim[-1], embedding_dim)
@@ -54,7 +62,7 @@ class XVector(nn.Module):
     def extract_embedding(self, x):
         x = self.frame_level(x)
         x = self.pooling(x)
-        x.squeeze_(1)
+        x.squeeze_(-1)
         x_a = self.fc1(x)
         x = self.activation(x)
         x = self.bn1(x_a)
