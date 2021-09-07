@@ -1,0 +1,2 @@
+mu_law_encoding: true
+quantization_channels: 256

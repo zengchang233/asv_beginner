@@ -1,7 +1,7 @@
 frames: [300,300]
 test_manifest: ./task.txt # path to test set manifest
 test_root: /home/smg/zengchang/data/voxceleb1/test/wav
-train_manifest: /home/smg/zengchang/data/manifest/voxceleb2_augment_manifest.csv # path to training set manifest
+train_manifest: /home/smg/zengchang/data/manifest/voxceleb1_manifest.csv # path to training set manifest
 win_len: 0.025
 win_shift: 0.01
 rate: 16000

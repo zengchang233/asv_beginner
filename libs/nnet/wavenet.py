@@ -138,12 +138,14 @@ class WaveNet(nn.Module):
         # Feed data to network
         x = self.first_conv(x)
         skips = 0
+        # skips = []
         for f in self.conv_layers:
             x, h = f(x)
             skips += h
+            # skips.append(h)
         skips *= math.sqrt(1.0 / len(self.conv_layers))
         x = skips
-        # return x, x
+        # x = torch.cat(skips, dim = 1)
         x = self.pooling(x)
         x.squeeze_(-1)
         x_a = self.fc1(x)

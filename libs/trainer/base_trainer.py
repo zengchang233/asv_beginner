@@ -80,6 +80,7 @@ class BaseTrainer(object):
 
     def _move_to_device(self):
         if self.train_opts['device'] == 'cuda':
+            print("using gpus")
             self.device = torch.device('cuda')
             if self.mode == 'test':
                 device_ids = [0]
@@ -122,11 +123,11 @@ class BaseTrainer(object):
     def save(self, filename = None):
         model = self.model.module # DO NOT save DataParallel wrapper
         if filename is None:
-            torch.save({'epoch': self.current_epoch, 'state_dict': model.state_dict(), 'criterion': self.criterion,
+            torch.save({'epoch': self.current_epoch, 'state_dict': model.state_dict(), 'criterion': self.criterion.state_dict(),
                         'lr_scheduler': self.lr_scheduler.state_dict(), 'optimizer': self.optim.state_dict()},
                         'exp/{}/net_{}.pth'.format(self.log_time, self.current_epoch))
         else:
-            torch.save({'epoch': self.current_epoch, 'state_dict': model.state_dict(), 'criterion': self.criterion,
+            torch.save({'epoch': self.current_epoch, 'state_dict': model.state_dict(), 'criterion': self.criterion.state_dict(),
                         'lr_scheduler': self.lr_scheduler.state_dict(), 'optimizer': self.optim.state_dict()},
                         'exp/{}/{}'.format(self.log_time, filename))
 
@@ -136,7 +137,11 @@ class BaseTrainer(object):
             self.model.module.load_state_dict(ckpt['state_dict'])
         else:
             self.model.load_state_dict(ckpt['state_dict'])
-        if 'criterion' in ckpt:
+        if 'criterion' in ckpt and isinstance(ckpt['criterion'], dict):
+            # print("criterion state dict")
+            self.criterion.load_state_dict(ckpt['criterion'])
+        else:
+            # print("criterion object")
             self.criterion = ckpt['criterion']
         if 'lr_scheduler' in ckpt:
             self.lr_scheduler.load_state_dict(ckpt['lr_scheduler'])

@@ -1,15 +1,16 @@
 from functools import partial
+from numpy.lib.function_base import quantile
 
 import torch
 import torch.nn as nn
-import torchaudio as ta
+import torch.nn.functional as F
 from torchaudio.functional import *
 from torchaudio.transforms import ComputeDeltas, SlidingWindowCmn, Spectrogram, MelSpectrogram, MFCC, MuLawEncoding
 import torchaudio.compliance.kaldi as kaldi
 
 from librosa import stft, magphase
 from numpy import log1p
-from python_speech_features import mfcc, fbank, logfbank, delta
+from python_speech_features import mfcc, fbank, logfbank
 
 def normalize(feat):
     '''
@@ -165,32 +166,33 @@ class KaldiFeatureExtractor(nn.Module):
         feature = []
         for i in range(len(wave)):
             kaldi_feature = self.feat(torch.from_numpy(wave[i].reshape(1, -1)))
-            #  print(kaldi_feature.shape)
             feature.append(self._normalize(kaldi_feature).unsqueeze(0))
         feature = torch.cat(feature, dim = 0)
         return feature.transpose(2,1).contiguous()
 
 class RawWaveform(nn.Module):
     def __init__(self, rate, feat_type, opts):
-        super(RawWaveform).__init__()
+        super(RawWaveform, self).__init__()
         self.rate = rate
         mu_law_encoding = opts['mu_law_encoding']
+        self.quantization_channels = opts['quantization_channels']
         if mu_law_encoding:
-            self.transform = MuLawEncoding()
+            self.transform = MuLawEncoding(quantization_channels = self.quantization_channels)
         else:
             self.transform = torch.tensor
 
     def forward(self, x):
-        wave = [self.transform(torch.from_numpy(data.reshape(1, -1))) for data in wave]
-        return torch.cat(wave, dim = 0)
+        wave = [self.transform(torch.from_numpy(data.reshape(1, -1))) for data in x]
+        return torch.cat(wave, dim = 0).unsqueeze(1).float()
 
 if __name__ == "__main__":
     import numpy as np
     import yaml
-    f = open("../../conf/data/kaldi_spectrogram.yaml")
+    f = open("../../conf/data/wave.yaml")
     config = yaml.load(f, Loader = yaml.CLoader)
     f.close()
-    feature_extractor = KaldiFeatureExtractor(16000, 'spectrogram', config)
+    # feature_extractor = KaldiFeatureExtractor(16000, 'spectrogram', config)
+    feature_extractor = RawWaveform(16000)
     #  a = torch.randn(1, 45000)
     a = np.random.randn(1, 45000)
     a = a / np.abs(a).max()

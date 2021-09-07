@@ -133,6 +133,8 @@ class NNetTrainer(base_trainer.BaseTrainer):
         If so, you have to set the following attribution in this function.
         1. trainloader 
         '''
+        import multiprocessing
+        cpu_count = multiprocessing.cpu_count()
         train_collate_fn = self.trainset.collate_fn
         if self.train_opts['loss'] == 'TripletLoss':
             from libs.dataio.dataset import BalancedBatchSampler
@@ -140,11 +142,11 @@ class NNetTrainer(base_trainer.BaseTrainer):
             spk_per_batch = self.train_opts['spk_per_batch']
             batch_sampler = BalancedBatchSampler(self.n_spk, self.trainset.count, spk_per_batch, utt_per_spk)
             self.trainloader = DataLoader(self.trainset, collate_fn = train_collate_fn, batch_sampler = batch_sampler, 
-                                          num_workers = 16, pin_memory = True)
+                                          num_workers = cpu_count, pin_memory = True)
         else:
             batch_sampler = None
             self.trainloader = DataLoader(self.trainset, shuffle = True, collate_fn = train_collate_fn, batch_sampler = batch_sampler, 
-                                          batch_size = self.train_opts['bs'] * self.device_num, num_workers = 16, pin_memory = True)
+                                          batch_size = self.train_opts['bs'] * self.device_num, num_workers = cpu_count, pin_memory = True)
     
     def train_epoch(self): 
         # you MUST overwrite this function

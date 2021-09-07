@@ -7,6 +7,7 @@ import math
 
 import numpy as np
 import torch
+import torch.nn as nn
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 import torch.optim as optim
@@ -26,7 +27,7 @@ from libs.utils.performance_eval import compute_eer
 class XVTrainer(nnet_trainer.NNetTrainer):
     def __init__(self, data_opts, model_opts, train_opts, args):
         super(XVTrainer, self).__init__(data_opts, model_opts, train_opts, args)
-        summary(self.model, (self.input_dim, 300))
+        # summary(self.model, (self.input_dim, 300))
 
     def build_model(self):
         model_config = read_config("conf/model/{}.yaml".format(self.model_opts['arch']))
@@ -37,6 +38,7 @@ class XVTrainer(nnet_trainer.NNetTrainer):
     
     def build_criterion(self):
         super().build_criterion()
+        # self.criterion = nn.DataParallel(self.criterion, device_ids = [0,1])
 
     def build_dataloader(self):
         super().build_dataloader()    

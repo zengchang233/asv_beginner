@@ -10,7 +10,7 @@ sys.path.insert(0, "../../")
 
 import numpy as np
 import torch
-from torch.utils.data import Dataset, BatchSampler
+from torch.utils.data import Dataset
 import soundfile as sf
 #  import torchaudio as ta
 #  from torchaudio.transforms import *
@@ -33,6 +33,7 @@ class SpeechTrainDataset(Dataset):
             repeat = opts['repeat']
         else:
             repeat = True
+        self.labels = []
 
         # read audio file path from manifest
         self.dataset = []
@@ -160,10 +161,15 @@ class SpeechTrainDataset(Dataset):
 
 if __name__ == "__main__":
     from torch.utils.data import DataLoader
+    from libs.utils.utils import BalancedBatchSamplerV2
     opts = read_config("../../conf/data.yaml")
     train_dataset = SpeechTrainDataset(opts)
-    train_loader = DataLoader(train_dataset, batch_size = 4, shuffle = True, collate_fn = train_dataset.collate_fn, num_workers = 4, pin_memory = False)
+    batch_sampler = BalancedBatchSamplerV2(train_dataset.n_spk, len(train_dataset), 500, 5)
+    # train_loader = DataLoader(train_dataset, batch_size = 4, shuffle = True, collate_fn = train_dataset.collate_fn, num_workers = 4, pin_memory = False)
+    train_loader = DataLoader(train_dataset, batch_sampler = batch_sampler, collate_fn = train_dataset.collate_fn, num_workers = 4, pin_memory = True)
     trainiter = iter(train_loader)
     feature, label = next(trainiter)
     print(feature.shape)
     print(label)
+    output = torch.unique(label)
+    print(len(output))

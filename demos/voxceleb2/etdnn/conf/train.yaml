@@ -1,7 +1,7 @@
-device: gpu # gpu, cpu
-gpus_id: [0]
+device: cuda # cuda, cpu
+gpus_id: [0,1]
 type: sgd
-bs: 64
+bs: 1024
 lr_decay: 0.1
 lr_scheduler: multi_step
 milestones: [20,35]

@@ -12,6 +12,18 @@ from libs.components import scores
 def mean(x, dim = 0):
     return torch.mean(x, dim = dim)
 
+class PositionwiseFeedForward(nn.Module):
+    "Implements FFN equation."
+    def __init__(self, d_model, d_ff, dropout=0.1):
+        super(PositionwiseFeedForward, self).__init__()
+        self.w_1 = nn.Linear(d_model, d_ff)
+        self.w_2 = nn.Linear(d_ff, d_model)
+        self.activation = nn.ReLU()
+
+    def forward(self, x):
+        x = self.w_2(self.activation(self.w_1(x)))
+        return x
+
 class AttentionAggregation(nn.Module):
     def __init__(self, opts):
         super(AttentionAggregation, self).__init__()
@@ -27,7 +39,7 @@ class AttentionAggregation(nn.Module):
         输出的是attention_mapping和attention_weight:
             attention_mapping: (length, batch_size, dimension)
             attention_weight: 格式暂时不知
-        '''
+        '''     
         self.attention_transformation = nn.MultiheadAttention(self.d_model, self.head)
         if self.pooling == 'mean':
             self.aggregation = mean
@@ -39,9 +51,6 @@ class AttentionAggregation(nn.Module):
                 attention_weight: (batch_size, head, length)
             '''
             self.aggregation = AttentionAlphaComponent(self.d_model, self.head)
-            #  self.aggregation = MultiHeadAttentionPooling(self.d_model, num_head = self.head, stddev = False)
-        
-        #  self.fc = nn.Linear(self.d_model * 2, self.d_model)
 
         if self.score_method == 'cosine':
            self.score = scores.CosineScore()
@@ -58,22 +67,21 @@ class AttentionAggregation(nn.Module):
             x: (N, M, D), N speakers, M utterances per speaker, D dimension
         '''
         assert len(x.size()) == 3
-        n_spks, n_utts, _ = x.size()
+        n_spks, n_utts, dimension = x.size()
         x = x.repeat(1, n_utts, 1) # 重复n_utts次
         mask = torch.logical_not(torch.eye(n_utts)).repeat(n_spks, 1).view(-1).to(x.device) # mask掉本身
         masked_x = x.view(-1, self.d_model)[mask].contiguous().view(n_spks * n_utts, -1, self.d_model) # 每n_spks个划分为一组，分别对应mask掉的部分
         masked_x = masked_x.transpose(0, 1).contiguous() # n_utts - 1, n_spks * n_utts, dimension
+        
         x, _ = self.attention_transformation(masked_x, masked_x, masked_x, None) # n_utts - 1, n_spks * n_utts, dimension
         x = x + masked_x
+        
         if self.pooling == 'mean':
             aggregation = mean(x) # (n_spks * (n_utts - 1), dimension), n_spks * (n_utts - 1)
         else:
             x = x.permute(1, 2, 0) # n_spks * n_utts, dimension, n_utts - 1
             alpha = self.aggregation(x)
             aggregation = x.view(n_spks * n_utts, self.head, self.d_model // self.head, -1).matmul(alpha.unsqueeze(-1)).view(n_spks * n_utts, self.d_model)
-            #  aggregation = self.aggregation(x).squeeze(-1)
-
-        #  aggregation = self.fc(aggregation)
 
         return aggregation
 
@@ -97,6 +105,7 @@ class AttentionAggregation(nn.Module):
 
     def enroll(self, x):
         x = x.transpose(0, 1).contiguous() # n_utts, 1, dimension
+            
         output, _ = self.attention_transformation(x, x, x, None)
         x += output # n_utts, 1, dimension
         if self.pooling == 'mean':
@@ -105,9 +114,6 @@ class AttentionAggregation(nn.Module):
             x = x.permute(1, 2, 0) # 1, dimension, n_utts 
             alpha = self.aggregation(x)
             aggregation = x.view(x.size(0), self.head, self.d_model // self.head, -1).matmul(alpha.unsqueeze(-1)).view(x.size(0), self.d_model)
-            #  aggregation = self.aggregation(x).squeeze(-1)
-
-        #  aggregation = self.fc(aggregation)
 
         return aggregation
         

@@ -1,8 +1,8 @@
 #! /bin/bash
 
 alias python=`which python3`
-
-stage=1
+export KALDI_ROOT=/home/smg/zengchang/apps/kaldi
+stage=0
 # train a frontend module
 if [ $stage -le 0 ]; then
     # options:
@@ -14,8 +14,8 @@ if [ $stage -le 0 ]; then
     # --resume resume path
     # --device gpu or cpu
     # --mode depreciated
-    python local/nnet/trainer.py --feat-type kaldi_fbank --arch etdnn --input-dim 80 \
-        --device cuda --bs 64 --loss AMSoftmax --resume exp/Fri_Jul_16_11_46_09_2021/net_2.pth
+    python -m ipdb local/nnet/trainer.py --feat-type kaldi_fbank --arch etdnn --input-dim 80 \
+        --device cuda --bs 32 --loss AMSoftmax # --resume exp/Fri_Jul_16_11_46_09_2021/net_10.pth
     echo "frontend training done!"
     exit 0;
 fi
